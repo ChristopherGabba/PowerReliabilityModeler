@@ -355,11 +355,18 @@ export function Workspace({
                 <button
                   key={type}
                   className={`palette-item ${e.tool === 'place' && e.placement === type ? 'active' : ''}`}
-                  onClick={act(() => e.setTool('place', type))}
+                  onPointerDown={(event) =>
+                    controller.current?.beginPaletteDrag(
+                      type,
+                      event.nativeEvent,
+                      event.currentTarget,
+                    )
+                  }
+                  onClick={(event) => controller.current?.selectPalette(type, event.nativeEvent)}
                   aria-label={`Place ${CATALOG[type].name}`}
-                  title={`${CATALOG[type].name} — click to place`}
+                  title={`${CATALOG[type].name} — drag onto canvas or click to place`}
                 >
-                  <img src={`/symbols/${type}.png`} alt="" />
+                  <img src={`/symbols/${type}.png`} alt="" draggable={false} />
                   <span className="palette-tooltip">{CATALOG[type].short}</span>
                 </button>
               ))}

@@ -3,6 +3,7 @@ import { CATALOG } from '../core/catalog'
 import { equipmentLabel } from '../core/labels'
 import { Editor } from '../core/editor'
 import { tintableSymbol } from './symbolTexture'
+import { drawUtilitySource } from './utilitySymbol'
 import { endpointPosition, routeConnector, worldPoint } from '../core/geometry'
 import {
   EQUIPMENT_TYPES,
@@ -234,9 +235,13 @@ export class CanvasRenderer {
               ? ink
               : disconnected
     v.lines.clear()
+    if (v.symbol)
+      v.symbol.visible = e.equipment_type !== 'bus' && e.equipment_type !== 'utility_source'
     if (e.equipment_type === 'bus') {
       const half = (e.bus_length ?? 200) / 2
       v.lines.moveTo(-half, 0).lineTo(half, 0).stroke({ width: 6, color, cap: 'round' })
+    } else if (e.equipment_type === 'utility_source') {
+      drawUtilitySource(v.lines, color, c.ports[0])
     } else {
       const texture = this.textures.get(e.equipment_type)
       if (texture) {
@@ -256,7 +261,7 @@ export class CanvasRenderer {
           .stroke({ color, width: 1.5 })
       for (const p of c.ports)
         v.lines
-          .moveTo(p.x - p.dx * 12, p.y - p.dy * 12)
+          .moveTo(p.x - p.dx * (p.leadLength ?? 12), p.y - p.dy * (p.leadLength ?? 12))
           .lineTo(p.x, p.y)
           .stroke({ width: 1.7, color })
     }
@@ -265,10 +270,6 @@ export class CanvasRenderer {
         for (const p of c.ports)
           v.lines.circle(p.x, p.y, 3.4).fill(0xffffff).stroke({ width: 1.4, color })
     }
-    if (pick?.keys.has(e.key) || pick?.owner === e.key)
-      v.lines
-        .roundRect(-c.width / 2 - 7, -c.height / 2 - 7, c.width + 14, c.height + 14, 7)
-        .stroke({ width: 2, color })
     v.label.style.fill = selected || trigger || pick ? color : connected ? 0x526074 : 0x9aa8b7
     v.label.visible = this.editor.viewport.zoom > 0.38
   }
@@ -523,8 +524,14 @@ export class CanvasRenderer {
           .stroke({ color: blue, width: 1.5 / v.zoom })
       }
     }
-    this.ghost.visible = e.tool === 'place'
-    if (e.tool === 'place') {
+    const placement =
+      preview?.kind === 'place'
+        ? preview.point && { type: preview.type, point: preview.point }
+        : e.tool === 'place'
+          ? { type: e.placement, point: e.pointer }
+          : null
+    this.ghost.visible = !!placement
+    if (placement) {
       if (!this.placementGhost) {
         this.placementGhost = this.makeNode()
         this.ghost.addChild(this.placementGhost.root)
@@ -532,14 +539,14 @@ export class CanvasRenderer {
       const node = this.placementGhost
       this.updateNode(node, {
         key: 'ghost',
-        id: CATALOG[e.placement].short,
-        equipment_type: e.placement,
-        ...e.pointer,
+        id: CATALOG[placement.type].short,
+        equipment_type: placement.type,
+        ...placement.point,
         rotation: 0,
         kv_rating: null,
         amp_rating: null,
         derating_multiplier: 1,
-        ...(e.placement === 'bus' ? { bus_length: 200 } : {}),
+        ...(placement.type === 'bus' ? { bus_length: 200 } : {}),
       })
       node.root.alpha = 0.45
     }

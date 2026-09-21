@@ -22,7 +22,7 @@ For a local editor-only development session, run `VITE_LOCAL_DEMO=true bun run d
 
 ## Editing
 
-Click an item in the bottom palette, then click the canvas. Hold Shift to place more than one. Double-click equipment for its inspector. Drag a terminal to another free terminal or a bus. Available nearby terminals also snap and connect when equipment is dropped. Select a bus to resize either end. Existing taps stay fixed during resizing. Select a connector and drag a segment handle to adjust its orthogonal route.
+Drag an item from the bottom palette onto the canvas, or click an item and then click the canvas. Hold Shift when dropping or clicking to keep placing that equipment. Escape or dropping outside the canvas cancels a palette drag. Double-click equipment for its inspector. Drag a terminal to another free terminal or a bus. Available nearby terminals also snap and connect when equipment is dropped. Drag a bus bar to move it; connections can only be initiated from other equipment. Select a bus to resize either end or rotate it with Ctrl + R. Existing taps stay fixed during resizing. Select a connector and drag a segment handle to adjust its orthogonal route.
 
 Equipment and connectors appear light gray when they have no connector path to a utility or generator. This follows the physical graph in either direction, including rings; visual groups and configured failovers do not provide a connection. Selected symbols turn blue without a surrounding selection box. Bus resize handles and terminal connection points remain available.
 

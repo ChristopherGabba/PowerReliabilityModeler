@@ -53,6 +53,7 @@ type History = {
   labelsBackward: LabelOffsets
 }
 export type Preview =
+  | { kind: 'place'; type: EquipmentType; point: Point | null }
   | { kind: 'move'; keys: Set<string>; dx: number; dy: number; duplicate: boolean }
   | { kind: 'label'; key: string; offset: Point }
   | { kind: 'marquee'; bounds: Bounds }

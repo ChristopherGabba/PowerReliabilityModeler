@@ -128,7 +128,7 @@ export function SignInPreview() {
                       {catalog.ports.map((port) => (
                         <path
                           key={port.id}
-                          d={`M ${port.x} ${port.y} L ${port.x - port.dx * 12} ${port.y - port.dy * 12}`}
+                          d={`M ${port.x} ${port.y} L ${port.x - port.dx * (port.leadLength ?? 12)} ${port.y - port.dy * (port.leadLength ?? 12)}`}
                           stroke="#273d55"
                           strokeWidth="1.5"
                         />

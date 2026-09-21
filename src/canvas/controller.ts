@@ -1,7 +1,7 @@
 import { Editor } from '../core/editor'
 import { boundsOf, distance, endpointPosition, worldPoint } from '../core/geometry'
 import { errorMessage, validateDocument } from '../core/schema'
-import type { DocumentRecord, EndpointRecord, Point, Viewport } from '../core/types'
+import type { DocumentRecord, EndpointRecord, EquipmentType, Point, Viewport } from '../core/types'
 
 type Gesture =
   | { kind: 'pan'; start: Point; viewport: Viewport }
@@ -13,6 +13,14 @@ type Gesture =
   | { kind: 'bend'; id: string; index: number; points: Point[] }
 export class CanvasController {
   private gesture: Gesture | null = null
+  private paletteDrag: {
+    type: EquipmentType
+    pointerId: number
+    source: HTMLElement
+    start: Point
+    active: boolean
+  } | null = null
+  private suppressPaletteClick = false
   private space = false
   private pendingMove: PointerEvent | null = null
   private frame = 0
@@ -44,6 +52,79 @@ export class CanvasController {
   }
   focus() {
     this.host.focus({ preventScroll: true })
+  }
+  selectPalette(type: EquipmentType, event: MouseEvent) {
+    // Pointer capture sends the release click back to the palette button. Do not
+    // re-arm placement after a completed/cancelled drag; keyboard clicks still work.
+    if (event.detail > 0 && this.suppressPaletteClick) return
+    this.editor.setTool('place', type)
+    this.focus()
+  }
+  beginPaletteDrag(type: EquipmentType, event: PointerEvent, source: HTMLElement) {
+    if (event.button !== 0 || !event.isPrimary || this.paletteDrag) return
+    this.cancel()
+    this.suppressPaletteClick = false
+    this.paletteDrag = {
+      type,
+      pointerId: event.pointerId,
+      source,
+      start: { x: event.clientX, y: event.clientY },
+      active: false,
+    }
+    event.preventDefault()
+    this.focus()
+    source.setPointerCapture(event.pointerId)
+    window.addEventListener('pointermove', this.paletteMove)
+    window.addEventListener('pointerup', this.paletteUp)
+    window.addEventListener('pointercancel', this.paletteCancel)
+    window.addEventListener('lostpointercapture', this.paletteCancel)
+  }
+  private palettePoint(event: PointerEvent): Point | null {
+    // The palette and toolbars overlap the canvas rectangle, but are not drop targets.
+    const target = document.elementFromPoint(event.clientX, event.clientY)
+    return target && this.host.contains(target) ? this.world(event) : null
+  }
+  private paletteMove = (event: PointerEvent) => {
+    const drag = this.paletteDrag
+    if (!drag || drag.pointerId !== event.pointerId) return
+    if (!drag.active) {
+      if (Math.hypot(event.clientX - drag.start.x, event.clientY - drag.start.y) < 4) return
+      drag.active = true
+      this.suppressPaletteClick = true
+    }
+    this.editor.preview = { kind: 'place', type: drag.type, point: this.palettePoint(event) }
+    this.editor.frame()
+  }
+  private clearPaletteDrag() {
+    const drag = this.paletteDrag
+    this.paletteDrag = null
+    window.removeEventListener('pointermove', this.paletteMove)
+    window.removeEventListener('pointerup', this.paletteUp)
+    window.removeEventListener('pointercancel', this.paletteCancel)
+    window.removeEventListener('lostpointercapture', this.paletteCancel)
+    if (drag?.source.hasPointerCapture(drag.pointerId))
+      drag.source.releasePointerCapture(drag.pointerId)
+    if (this.editor.preview?.kind === 'place') this.editor.preview = null
+    this.editor.frame()
+  }
+  private paletteUp = (event: PointerEvent) => {
+    const drag = this.paletteDrag
+    if (!drag || drag.pointerId !== event.pointerId) return
+    const point = this.palettePoint(event)
+    this.clearPaletteDrag()
+    if (!drag.active || !point) return
+    try {
+      this.editor.add(drag.type, point)
+      this.editor.setTool(event.shiftKey ? 'place' : 'select', drag.type)
+    } catch (error) {
+      this.editor.message(errorMessage(error))
+    }
+    this.focus()
+  }
+  private paletteCancel = (event: PointerEvent) => {
+    if (this.paletteDrag?.pointerId !== event.pointerId) return
+    this.suppressPaletteClick = true
+    this.clearPaletteDrag()
   }
   private context = (event: MouseEvent) => {
     event.preventDefault()
@@ -116,7 +197,8 @@ export class CanvasController {
         }
     }
     const terminal = e.nearestPort(p, new Set(), 8 / e.viewport.zoom)
-    if (terminal) {
+    // Bus taps receive connections; pressing the bar selects and moves it.
+    if (terminal && e.equipment.get(terminal.equipment_key)?.equipment_type !== 'bus') {
       this.gesture = { kind: 'wire', from: terminal }
       e.preview = { kind: 'wire', from: terminal, to: p }
       e.frame()
@@ -286,6 +368,10 @@ export class CanvasController {
       this.host.releasePointerCapture(event.pointerId)
   }
   private cancel = () => {
+    if (this.paletteDrag) {
+      this.suppressPaletteClick = true
+      this.clearPaletteDrag()
+    }
     this.gesture = null
     this.space = false
     this.pendingMove = null

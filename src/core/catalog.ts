@@ -5,7 +5,8 @@ export type CatalogEntry = {
   description: string
   width: number
   height: number
-  ports: Port[]
+  // Optional inward lead length joins each terminal to its artwork (default 12).
+  ports: (Port & { leadLength?: number })[]
 }
 const terminal = [{ id: 'terminal', x: 0, y: 38, dx: 0, dy: 1 }]
 const pair = [
@@ -52,8 +53,8 @@ export const CATALOG: Record<EquipmentType, CatalogEntry> = {
     width: 72,
     height: 80,
     ports: [
-      { ...pair[0], id: 'primary', y: -48 },
-      { ...pair[1], id: 'secondary', y: 48 },
+      { ...pair[0], id: 'primary', y: -48, leadLength: 17 },
+      { ...pair[1], id: 'secondary', y: 48, leadLength: 14.5 },
     ],
   },
   dry_type_transformer: {
@@ -63,8 +64,8 @@ export const CATALOG: Record<EquipmentType, CatalogEntry> = {
     width: 72,
     height: 80,
     ports: [
-      { ...pair[0], id: 'primary', y: -48 },
-      { ...pair[1], id: 'secondary', y: 48 },
+      { ...pair[0], id: 'primary', y: -48, leadLength: 17 },
+      { ...pair[1], id: 'secondary', y: 48, leadLength: 14.5 },
     ],
   },
   load: {

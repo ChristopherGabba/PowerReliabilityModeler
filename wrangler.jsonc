@@ -1,0 +1,84 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  // Stable local storage identity; the product is PowerSystemsModelToJSON.
+  "name": "power-reliability-modeler",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-09-21",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"],
+  },
+  "observability": {
+    "enabled": true,
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "power-reliability-modeler",
+      "migrations_dir": "migrations",
+    },
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "PROJECTS",
+        "class_name": "ProjectStore",
+      },
+    ],
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["ProjectStore"],
+    },
+  ],
+  "env": {
+    "preview": {
+      "name": "power-reliability-modeler-preview",
+      "vars": {
+        "CLERK_AUTHORIZED_PARTIES": "https://powersystemsmodeltojson-preview.christophergabba.workers.dev,https://power-reliability-modeler-preview.christophergabba.workers.dev",
+        "CLERK_PUBLISHABLE_KEY": "pk_test_YWJsZS1jYXRmaXNoLTI0MTQuY2xlcmsuYWNjb3VudHMuZGV2JA",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "power-reliability-modeler-preview",
+          "migrations_dir": "migrations",
+          "database_id": "d2ce0b0c-07da-4af3-a44a-b7149d22d5a2",
+        },
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "PROJECTS",
+            "class_name": "ProjectStore",
+          },
+        ],
+      },
+    },
+    "production": {
+      "name": "powersystemsmodeltojson",
+      "vars": {
+        "CLERK_AUTHORIZED_PARTIES": "",
+      },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "powersystemsmodeltojson",
+          "migrations_dir": "migrations",
+        },
+      ],
+      "durable_objects": {
+        "bindings": [
+          {
+            "name": "PROJECTS",
+            "class_name": "ProjectStore",
+          },
+        ],
+      },
+    },
+  },
+}

@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "powersystemsmodeltojson-preview",
+  "main": "worker/preview-entry.ts",
+  "compatibility_date": "2026-09-21",
+  "workers_dev": true,
+  "observability": { "enabled": true },
+  "services": [
+    {
+      "binding": "MODELER",
+      "service": "power-reliability-modeler-preview",
+    },
+  ],
+}

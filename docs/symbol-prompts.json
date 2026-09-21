@@ -1,0 +1,43 @@
+{
+  "tool": "Built-in GPT Image Gen",
+  "style": "Transparent, charcoal monoline electrical schematic glyph; no external terminals, labels or shadows. Generated individually.",
+  "prompts": [
+    [
+      "utility_source",
+      "An electrical utility source symbol: a clean circle containing a simple sine wave, vertically oriented."
+    ],
+    [
+      "hv_breaker",
+      "A high-voltage circuit breaker single-line symbol: a small hollow square with a clean diagonal opening contact inside, vertically oriented."
+    ],
+    [
+      "outdoor_mv_breaker",
+      "An outdoor medium-voltage breaker single-line symbol: a hollow square enclosing a simple switch contact, with a subtle second outer rectangular enclosure, vertically oriented."
+    ],
+    [
+      "oil_filled_transformer",
+      "An oil-filled two-winding transformer one-line symbol: two vertically overlapping hollow circles, with two tiny cooling fins on each side of the lower circle. No labels."
+    ],
+    [
+      "dry_type_transformer",
+      "A dry-type two-winding transformer one-line symbol: two vertically overlapping hollow circles with one short thin horizontal separation line at their intersection. No labels."
+    ],
+    [
+      "load",
+      "An electrical load one-line symbol: an outlined downward-pointing equilateral triangle."
+    ],
+    ["bus", "A busbar one-line symbol: a single thick horizontal black bar. No other shapes."],
+    [
+      "ring_main_unit",
+      "A ring-main unit electrical one-line symbol: three small simple switch contact symbols side by side, joined at the top by one horizontal line. Left, right and center feeder form a compact three-way switch schematic, no enclosure, no lettering."
+    ],
+    [
+      "cable",
+      "A cable equipment one-line symbol: two short parallel vertical lines in a narrow vertical rectangle with a single diagonal slash across them, clean minimal drafting notation."
+    ],
+    [
+      "generator",
+      "An electrical generator one-line symbol: a clean hollow circle with capital letter G centered inside, using a plain geometric sans-serif."
+    ]
+  ]
+}

@@ -1,0 +1,1 @@
+ALTER TABLE projects ADD COLUMN server_revision INTEGER NOT NULL DEFAULT 0;

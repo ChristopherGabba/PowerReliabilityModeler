@@ -1,0 +1,26 @@
+{
+  "connectors": 2500,
+  "duplicateMs": 9.899999976158142,
+  "gpu": "ANGLE (Apple, ANGLE Metal Renderer: Apple M2 Pro, Unspecified Version)",
+  "items": 2000,
+  "memory": 83362838,
+  "move": {
+    "max": 23.300000071525577,
+    "p50": 10.299999952316284,
+    "p95": 11.700000047683716
+  },
+  "openMs": 498,
+  "pan": {
+    "max": 9.5,
+    "p50": 6,
+    "p95": 6.600000023841858
+  },
+  "saveLongTasks": [],
+  "saveResult": true,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+  "viewport": {
+    "dpr": 1,
+    "height": 1000,
+    "width": 1440
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "connectors": 2500,
+  "duplicateMs": 9,
+  "gpu": "WebGPU",
+  "items": 2000,
+  "memory": 279180756,
+  "move": {
+    "max": 23.799999952316284,
+    "p50": 12.299999952316284,
+    "p95": 16.100000023841858
+  },
+  "openMs": 447,
+  "pan": {
+    "max": 22.5,
+    "p50": 9.099999904632568,
+    "p95": 10.200000047683716
+  },
+  "saveLongTasks": [],
+  "saveResult": true,
+  "userAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/148.0.0.0 Safari/537.36",
+  "viewport": {
+    "dpr": 1,
+    "height": 1000,
+    "width": 1440
+  }
+}

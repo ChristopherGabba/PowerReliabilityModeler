@@ -1,0 +1,6 @@
+node_modules
+dist
+dist-benchmark
+.wrangler
+bun.lock
+public/symbols

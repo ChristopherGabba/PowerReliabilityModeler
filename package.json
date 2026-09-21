@@ -1,0 +1,48 @@
+{
+  "name": "powersystemsmodeltojson",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "build": "tsc -b && vite build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "preview": "vite preview --host 127.0.0.1",
+    "deploy:preview": "tsc -b && CLOUDFLARE_ENV=preview vite build && wrangler deploy && wrangler deploy --config wrangler.preview-entry.jsonc",
+    "deploy:production": "tsc -b && CLOUDFLARE_ENV=production vite build && wrangler deploy",
+    "check:worker": "wrangler deploy --dry-run",
+    "db:local": "wrangler d1 migrations apply power-reliability-modeler --local",
+    "format": "prettier --write src worker tests *.ts *.json *.jsonc *.html docs README.md",
+    "format:check": "prettier --check src worker tests *.ts *.json *.jsonc *.html docs README.md",
+    "build:benchmark": "vite build --config vite.benchmark.config.ts",
+    "preview:benchmark": "vite preview --config vite.benchmark.config.ts",
+    "types": "wrangler types worker/env.d.ts --include-runtime false --env-interface WorkerBindings"
+  },
+  "dependencies": {
+    "@clerk/backend": "3.18.1",
+    "@clerk/react": "6.16.1",
+    "@fontsource/geist": "5.3.0",
+    "idb": "8.0.3",
+    "lucide-react": "1.47.0",
+    "pixi.js": "8.21.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "zod": "4.6.5"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "1.57.0",
+    "@cloudflare/workers-types": "5.20260921.1",
+    "@types/node": "26.6.2",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "5.2.0",
+    "esbuild": "0.28.1",
+    "miniflare": "5.20260921.0-alpha",
+    "prettier": "3.9.8",
+    "typescript": "5.9.3",
+    "vite": "7.3.6",
+    "vitest": "4.1.11",
+    "wrangler": "4.136.0"
+  }
+}

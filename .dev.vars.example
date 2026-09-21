@@ -1,0 +1,5 @@
+CLERK_SECRET_KEY=
+# Comma-separated frontend origins permitted in session tokens.
+CLERK_AUTHORIZED_PARTIES=http://localhost:5173,http://127.0.0.1:5173
+
+CLERK_PUBLISHABLE_KEY=pk_test_replace_me

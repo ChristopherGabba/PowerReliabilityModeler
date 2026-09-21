@@ -289,33 +289,14 @@ kbd {
 }
 .projects-main {
   max-width: 1310px;
-  padding: 72px 60px 50px;
+  padding: 40px 60px 50px;
   margin: auto;
   min-height: calc(100vh - 150px);
 }
-.page-intro {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 30px;
-  margin-bottom: 57px;
-}
-.page-intro h1 {
-  font-size: 39px;
-  font-weight: 500;
-  letter-spacing: -1.7px;
-  margin: 13px 0 12px;
-  line-height: 1.1;
-}
-.page-intro p {
-  font-size: 13px;
-  color: #8291a1;
-  line-height: 1.6;
-}
 .page-actions {
   display: flex;
+  flex-wrap: wrap;
   gap: 10px;
-  margin-top: 22px;
 }
 .page-actions .button {
   height: 38px;
@@ -323,8 +304,10 @@ kbd {
 }
 .models-heading {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 18px;
   border-bottom: 1px solid #e6ebf0;
   padding-bottom: 18px;
   margin-bottom: 24px;
@@ -334,7 +317,7 @@ kbd {
   gap: 10px;
   align-items: center;
 }
-.models-heading h2 {
+.models-heading h1 {
   font-size: 13px;
   font-weight: 600;
 }
@@ -1799,7 +1782,7 @@ kbd {
 }
 @media (max-width: 1200px) {
   .projects-main {
-    padding: 50px 36px;
+    padding: 32px 36px 50px;
   }
   .projects-header,
   .projects-footer {
@@ -1855,15 +1838,6 @@ kbd {
 @media (max-width: 950px) {
   .model-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-  .page-intro {
-    gap: 20px;
-  }
-  .page-intro h1 {
-    font-size: 32px;
-  }
-  .page-intro p {
-    font-size: 11px;
   }
   .workspace-label {
     display: none;

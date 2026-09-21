@@ -357,13 +357,22 @@ function Client({
         </div>
       </header>
       <main className="projects-main">
-        <div className="page-intro">
+        <div className="models-heading">
           <div>
-            <span className="eyebrow">YOUR WORKSPACE</span>
-            <h1>Power, connected.</h1>
-            <p>A place for your systems, connections, and what comes next.</p>
+            <h1>Your models</h1>
+            <span className="count">{projects.length}</span>
           </div>
           <div className="page-actions">
+            <label className="search-box">
+              <Search size={16} />
+              <input
+                aria-label="Search models"
+                placeholder="Search models…"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+              <kbd>⌕</kbd>
+            </label>
             <button className="button" onClick={() => file.current?.click()} disabled={busy}>
               <Upload size={15} />
               Import JSON
@@ -373,22 +382,6 @@ function Client({
               New model
             </button>
           </div>
-        </div>
-        <div className="models-heading">
-          <div>
-            <h2>Your models</h2>
-            <span className="count">{projects.length}</span>
-          </div>
-          <label className="search-box">
-            <Search size={16} />
-            <input
-              aria-label="Search models"
-              placeholder="Search models…"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-            />
-            <kbd>⌕</kbd>
-          </label>
         </div>
         {error && (
           <div className="error-banner" role="alert">

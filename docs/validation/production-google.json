@@ -1,0 +1,43 @@
+{
+  "date": "2026-09-21T20:28:22Z",
+  "origin": "https://powersystemsmodeltojson.com",
+  "googleProject": "powersystemsmodeltojson",
+  "googleClientId": "48882856024-5tsa5kmg3dq0mapde540ri7fmpb11sud.apps.googleusercontent.com",
+  "audience": "External",
+  "publishingStatus": "In production",
+  "scopes": ["openid", "email", "profile"],
+  "authorizedOrigins": [
+    "https://powersystemsmodeltojson.com",
+    "https://www.powersystemsmodeltojson.com"
+  ],
+  "callback": "https://clerk.powersystemsmodeltojson.com/v1/oauth_callback",
+  "clerkGoogleConnectionEnabledAndConfigured": true,
+  "browser": "Codex in-app Chromium",
+  "interactiveChecks": {
+    "missingClientIdErrorResolved": true,
+    "googleAccountChooserReached": true,
+    "googleConsentCompleted": true,
+    "callbackReachedAuthenticatedWorkspace": true,
+    "temporaryModelCreatedThroughUI": true,
+    "utilityPlacedThroughUI": true,
+    "autosaveStatus": "All changes saved",
+    "equipmentCountVerifiedInProductionD1": 1,
+    "serverRevisionVerifiedInProductionD1": 2,
+    "modelReopenedAfterPageReload": true,
+    "reopenedEquipmentCount": 1,
+    "temporaryModelDeletedThroughUI": true,
+    "workspaceModelCountAfterCleanup": 0,
+    "deletionTombstoneVerifiedInProductionD1": true
+  },
+  "approvedPublicPages": [
+    { "path": "/privacy/", "status": 200 },
+    { "path": "/terms/", "status": 200 }
+  ],
+  "policyLinksOnSignInAndGoogleBranding": true,
+  "productionTypeScriptAndBuild": "passed",
+  "changedApplicationFilesFormatting": "passed",
+  "limitations": [
+    "This interactive flow used one production Google account.",
+    "Safari and Edge production OAuth and persistence remain unverified."
+  ]
+}

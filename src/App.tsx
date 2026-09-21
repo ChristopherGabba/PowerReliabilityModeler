@@ -80,8 +80,14 @@ function Authenticated() {
           appearance={{
             elements: {
               rootBox: { width: '100%' },
-              cardBox: { width: '100%', boxShadow: 'none', borderRadius: 0 },
-              card: { padding: 0, boxShadow: 'none', background: 'transparent' },
+              // The unpadded form needs room for control shadows and focus rings.
+              cardBox: {
+                width: '100%',
+                boxShadow: 'none',
+                borderRadius: 0,
+                overflow: 'visible',
+              },
+              card: { margin: 0, padding: 0, boxShadow: 'none', background: 'transparent' },
               headerTitle: { fontSize: '18px', textAlign: 'left' },
               headerSubtitle: { display: 'none' },
               footer: { background: 'transparent', paddingLeft: 0, paddingRight: 0 },
@@ -107,9 +113,16 @@ function SignInPage({ children }: { children: ReactNode }) {
         <p className="auth-description">
           Build an electrical model.
           <br />
+          Enter Equipment Ratings.
+          <br />
+          Define Failover Targets.
+          <br />
           Export it as JSON.
         </p>
         <div className="auth-form">{children}</div>
+        <p style={{ fontSize: 12, marginTop: 24 }}>
+          <a href="/privacy/">Privacy Policy</a> · <a href="/terms/">Terms of Service</a>
+        </p>
       </section>
       <SignInPreview />
     </main>

@@ -8,7 +8,7 @@
 
 ## Deployed preview checks
 
-The authenticated PowerSystemsModelToJSON preview is live at https://powersystemsmodeltojson-preview.christophergabba.workers.dev. The previous preview URL remains usable with the same projects and authentication. A production domain and rollout remain deferred at the user's request.
+The authenticated PowerSystemsModelToJSON preview is live at https://powersystemsmodeltojson-preview.christophergabba.workers.dev. The previous preview URL remains usable with the same projects and authentication. Production deployment was subsequently authorized; see the production deployment record below.
 
 - Signed in through Clerk's actual email-code UI with two disposable development test users. No authentication bypass was used. Google sign-in is configured, but its interactive OAuth flow has not been exercised.
 - Created and saved private projects against the deployed D1/SQLite Durable Object API. Verified idempotent retries, revision conflicts, and unauthenticated rejection (`live-preview.json`).
@@ -97,7 +97,19 @@ The sign-in brand, project-list brand, page title and description, package/lockf
 
 All 57 tests and the TypeScript/production build pass. The sign-in page was visually checked at 1440 × 1000 and 390 × 844, with the exact name in DOM text and no horizontal overflow. The new preview entry uses a Cloudflare service binding to the existing authenticated application. Both preview URLs and localhost serve the new title, report configured authentication, and return 401 for unauthenticated project requests. Clerk's real sign-in form loads on the new URL.
 
-The Clerk dashboard application label still requires an authenticated dashboard session; the user's sign-in request is pending. No Clerk credentials, users, sessions, or authentication strategies were replaced.
+The Clerk dashboard application label was subsequently confirmed as PowerSystemsModelToJSON. Existing development credentials, users, and sessions were retained.
+
+## Production deployment
+
+The user registered `powersystemsmodeltojson.com` in Cloudflare and authorized production rollout. The apex and `www` serve the production Worker over HTTPS. A separate production Clerk instance, D1 database, and SQLite Durable Object namespace isolate production from the existing preview.
+
+All 57 tests and the production build pass. The built client contains the live publishable key, contains no development publishable key or secret key, and excludes the development harness. The production sign-in form and interactive main-tie-main JSON preview load successfully. Health returns configured authentication; missing and malformed sessions receive 401 for project requests (`production-smoke.json`). The preview and localhost still respond successfully.
+
+Clerk's five DNS records are verified, including all three email records. The production dashboard confirms email verification codes for sign-up/sign-in, required email verification, and disabled passwords. The user created Google Cloud project `powersystemsmodeltojson` (project number `48882856024`) and accepted Google's API Services User Data Policy. Its dedicated web OAuth client is configured in production Clerk; the Google audience is External with publishing status In production. Only basic sign-in scopes are requested.
+
+The reported `Missing required parameter: client_id` error was caused by the production Google connection being enabled with empty custom credentials. After creating and saving the client credentials, the real production sign-in button reached Google's account chooser, showed the correct domain and approved policy links, completed Google consent, and returned to the authenticated private workspace. Created a temporary model and placed a utility source through the UI. Autosave reached All changes saved, and a read-only production D1 query confirmed one equipment record and server revision 2 for that model. Reloading the production page and reopening the model retained the equipment and saved status. Deleted the temporary model through the UI; the workspace returned to zero models and a read-only D1 query confirmed its deletion tombstone. Results are recorded in `production-google.json`.
+
+The user approved publishing the privacy and terms pages. Both return HTTP 200 independently of authentication and are linked from the production sign-in page and Google branding configuration. The TypeScript/production build and changed-file formatting checks pass. Existing sign-in card spacing changes were preserved.
 
 ## Reproduction
 
@@ -106,6 +118,4 @@ Run `bun run build:benchmark`, then `bun run preview:benchmark`. Open `http://12
 ## Release gates
 
 - Verify end-to-end input-to-paint latency and performance on additional reference laptops, including Safari and Edge production builds.
-- Exercise Google OAuth; repeat authentication and cross-account isolation checks in Safari and Edge. Edge is not installed on this reference machine.
-- Verify Google OAuth on a production Clerk instance and the production domain before any future rollout.
-- Provision the production D1 database, production Clerk instance, and domain routing only after preview validation.
+- Repeat Google sign-in, authenticated persistence, and cross-account isolation checks in Safari and Edge; the Chromium production sign-in and persistence flow has passed. Edge is not installed on this reference machine.

@@ -2,7 +2,7 @@
 
 A desktop one-line editor built with React, a custom TypeScript graph editor, PixiJS, Clerk, and Cloudflare. Equipment owns its world position and engineering metadata. Connector endpoints own graph connectivity; portable JSON also contains derived equipment backlinks.
 
-The app is named **PowerSystemsModelToJSON**. The authenticated [Cloudflare preview](https://powersystemsmodeltojson-preview.christophergabba.workers.dev) is deployed. Keep using this preview until a production domain and rollout are requested. Validation results and remaining browser/performance checks are in [docs/validation](docs/validation/README.md).
+**PowerSystemsModelToJSON** is deployed at [powersystemsmodeltojson.com](https://powersystemsmodeltojson.com), with a production Clerk instance and isolated Cloudflare storage. The [Cloudflare preview](https://powersystemsmodeltojson-preview.christophergabba.workers.dev) remains available with its existing projects. Validation results and remaining browser/performance checks are in [docs/validation](docs/validation/README.md).
 
 ## Run
 
@@ -97,5 +97,18 @@ bunx wrangler deploy --config wrangler.preview-entry.jsonc
 ```
 
 Configure the matching non-secret `CLERK_PUBLISHABLE_KEY` and `CLERK_AUTHORIZED_PARTIES` in that environment, and the frontend key at build time. A deployed preview must be validated before a production build. Production requires a Clerk production instance, its Google OAuth setup, and a registered production domain with a Cloudflare route. Never deploy development keys as production credentials. The initial preview infrastructure was provisioned through the authenticated Cloudflare connector; Wrangler CLI authentication is a separate setup.
+
+Production uses the `powersystemsmodeltojson` Worker and D1 database, with custom domains for the apex and `www`. Clerk's five DNS-only CNAME records are verified. Email-code sign-up/sign-in is enabled and passwords are disabled. Production builds explicitly select the live publishable key in `vite.config.ts`, so the development key in `.env.local` cannot override it. The secret key is a Cloudflare secret binding and is never included in client assets.
+
+Google sign-in uses the dedicated Google Cloud project `powersystemsmodeltojson` and a production web OAuth client. Its origins are the apex and `www`, and its callback is `https://clerk.powersystemsmodeltojson.com/v1/oauth_callback`. Google OAuth is published for external production users and uses only basic identity, email, and profile scopes. The Google client secret is stored in Clerk. The approved public [Privacy Policy](https://powersystemsmodeltojson.com/privacy/) and [Terms of Service](https://powersystemsmodeltojson.com/terms/) are linked from the sign-in page and Google consent screen.
+
+```sh
+bunx wrangler d1 migrations apply powersystemsmodeltojson --remote --env production
+# Only when setting or rotating the production secret:
+bunx wrangler secret put CLERK_SECRET_KEY --env production
+bun run deploy:production
+```
+
+Preview and production have separate Clerk users, databases, and browser caches. To move a preview model, export its JSON and import it after signing into production. Never reassign project ownership using an unverified mapping between environments.
 
 No studies, load flow, short-circuit calculation, uploaded photos, shared editing, or full touch editing are implemented. Automatic obstacle avoidance is deferred; paths are orthogonal and user-adjustable.

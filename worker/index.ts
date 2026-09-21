@@ -140,7 +140,6 @@ export default {
         return json(result, 'error' in result ? result.status : 200)
       }
       if (match[2] === 'changes' && request.method === 'POST') {
-        const payload = await body(request)
         const input = z
           .object({
             expected_revision: z.number().int().nonnegative(),
@@ -148,21 +147,9 @@ export default {
             patch: patchSchema,
           })
           .strict()
-          .parse(payload)
-        // Preserve the validated wire spelling in fingerprints so edits queued before
-        // an equipment-type rename can still retry an already-accepted mutation.
-        const fingerprintPatch = {
-          ...input.patch,
-          equipment: {
-            ...input.patch.equipment,
-            put: input.patch.equipment.put.map((equipment, index) => ({
-              ...equipment,
-              equipment_type: payload.patch.equipment.put[index].equipment_type,
-            })),
-          },
-        }
+          .parse(await body(request))
         const bytes = new TextEncoder().encode(
-          JSON.stringify({ expected_revision: input.expected_revision, patch: fingerprintPatch }),
+          JSON.stringify({ expected_revision: input.expected_revision, patch: input.patch }),
         )
         const digest = await crypto.subtle.digest('SHA-256', bytes)
         const fingerprint = Array.from(new Uint8Array(digest), (v) =>

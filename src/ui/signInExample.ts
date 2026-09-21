@@ -23,7 +23,7 @@ function makeExample() {
   ] as const) {
     const utility = add('utility_source', `utility_${side}`, x, 40, 13.8)
     const transformer = add('dry_type_transformer', `transformer_${side}`, x, 145, 13.8)
-    const main = add('hv_breaker', `main_${side}`, x, 250)
+    const main = add('indoor_drawout_breaker', `main_${side}`, x, 250)
     const bus = add('bus', `bus_${side}`, x, 340)
     const load = add('load', `load_${side}`, x, 465)
     editor.resizeBus(bus, { ...editor.equipment.get(bus)!, bus_length: 180 })
@@ -33,7 +33,7 @@ function makeExample() {
     connect(bus, 'bar', load, 'terminal')
     buses.push(bus)
   }
-  const tie = add('hv_breaker', 'tie_main', 360, 340)
+  const tie = add('indoor_drawout_breaker', 'tie_main', 360, 340)
   for (let turn = 0; turn < 3; turn++) editor.rotate(new Set([tie]))
   connect(buses[0], 'bar', tie, 'in', 90)
   connect(tie, 'out', buses[1], 'bar', -90)

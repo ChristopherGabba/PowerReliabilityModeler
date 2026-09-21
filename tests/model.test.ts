@@ -8,7 +8,7 @@ import { benchmarkDocument, exampleDocument } from '../src/core/fixtures'
 function network() {
   const e = new Editor()
   const a = e.add('utility_source', { x: 0, y: 0 }),
-    b = e.add('hv_breaker', { x: 0, y: 180 }),
+    b = e.add('indoor_drawout_breaker', { x: 0, y: 180 }),
     bus = e.add('bus', { x: 0, y: 350 })
   e.connect({ equipment_key: a, port_id: 'terminal' }, { equipment_key: b, port_id: 'in' })
   e.connect(
@@ -80,7 +80,7 @@ describe('Editing transactions', () => {
     ['main_9007199254740992', 'main_9007199254740993', 'main_9007199254740994'],
   ])('increments copied IDs from %s without stacking suffixes', (original, first, second) => {
     const e = new Editor()
-    const key = e.add('hv_breaker', { x: 0, y: 0 })
+    const key = e.add('indoor_drawout_breaker', { x: 0, y: 0 })
     e.update(key, { id: original })
     const duplicateId = () => e.equipment.get([...e.duplicate()][0])!.id
     expect(duplicateId()).toBe(first)
@@ -91,15 +91,15 @@ describe('Editing transactions', () => {
   })
   it('skips occupied IDs on repeated paste and after a rename', () => {
     const e = new Editor()
-    const first = e.add('hv_breaker', { x: 0, y: 0 })
-    const second = e.add('hv_breaker', { x: 200, y: 0 })
-    expect(e.equipment.get(second)!.id).toBe('hv_breaker_2')
+    const first = e.add('indoor_drawout_breaker', { x: 0, y: 0 })
+    const second = e.add('indoor_drawout_breaker', { x: 200, y: 0 })
+    expect(e.equipment.get(second)!.id).toBe('indoor_drawout_breaker_2')
     e.select([first])
     const clipboard = e.copy()
-    expect(e.equipment.get([...e.paste(clipboard)][0])!.id).toBe('hv_breaker_3')
-    e.update(second, { id: 'hv_breaker_4' })
-    expect(e.equipment.get([...e.paste(clipboard)][0])!.id).toBe('hv_breaker_2')
-    expect(e.equipment.get([...e.paste(clipboard)][0])!.id).toBe('hv_breaker_5')
+    expect(e.equipment.get([...e.paste(clipboard)][0])!.id).toBe('indoor_drawout_breaker_3')
+    e.update(second, { id: 'indoor_drawout_breaker_4' })
+    expect(e.equipment.get([...e.paste(clipboard)][0])!.id).toBe('indoor_drawout_breaker_2')
+    expect(e.equipment.get([...e.paste(clipboard)][0])!.id).toBe('indoor_drawout_breaker_5')
     validateDocument(e.snapshot())
   })
   it('numbers a bulk copy uniquely and retains its internal connections through undo', () => {
@@ -150,7 +150,7 @@ describe('Editing transactions', () => {
     expect(e.connectors.size).toBe(3)
     const copy = [...keys]
       .map((k) => e.equipment.get(k)!)
-      .find((v) => v.equipment_type === 'hv_breaker')!
+      .find((v) => v.equipment_type === 'indoor_drawout_breaker')!
     expect(copy.kv_rating).toBe(13.8)
     expect(copy.derating_multiplier).toBe(0.99)
     expect(e.failovers).toHaveLength(1)
@@ -291,7 +291,7 @@ describe('Source connectivity', () => {
     const e = new Editor()
     const source = e.add('generator', { x: 0, y: 0 })
     const load = e.add('load', { x: 400, y: 400 })
-    const trigger = e.add('hv_breaker', { x: 800, y: 400 })
+    const trigger = e.add('indoor_drawout_breaker', { x: 800, y: 400 })
     e.setFailover(load, [trigger], source)
     e.select([source, load, trigger], false)
     e.group()

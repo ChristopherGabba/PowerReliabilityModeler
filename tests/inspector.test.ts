@@ -4,7 +4,7 @@ import { Editor } from '../src/core/editor'
 describe('Following an open inspector', () => {
   it('stays closed until opened, then follows single selections, copies and undo without adding history', () => {
     const e = new Editor()
-    const a = e.add('hv_breaker', { x: 0, y: 0 })
+    const a = e.add('indoor_drawout_breaker', { x: 0, y: 0 })
     const b = e.add('dry_type_transformer', { x: 300, y: 0 })
     e.select([a])
     expect(e.inspector).toBeNull()
@@ -29,7 +29,7 @@ describe('Following an open inspector', () => {
   })
   it('can inspect another member of a selected group while keeping failover picking on its owner', () => {
     const e = new Editor()
-    const a = e.add('hv_breaker', { x: 0, y: 0 })
+    const a = e.add('indoor_drawout_breaker', { x: 0, y: 0 })
     const b = e.add('load', { x: 300, y: 0 })
     e.select([a, b])
     e.group()

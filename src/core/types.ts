@@ -1,7 +1,7 @@
 export const EQUIPMENT_TYPES = [
   'utility_source',
-  'hv_breaker',
-  'outdoor_breaker',
+  'indoor_drawout_breaker',
+  'outdoor_mv_hv_breaker',
   'disconnect_switch',
   'oil_filled_transformer',
   'dry_type_transformer',
@@ -12,10 +12,6 @@ export const EQUIPMENT_TYPES = [
   'generator',
 ] as const
 export type EquipmentType = (typeof EQUIPMENT_TYPES)[number]
-// Older projects and queued edits keep their IDs and terminal geometry when loaded.
-export function normalizeEquipmentType<T>(value: T): T | 'outdoor_breaker' {
-  return value === 'outdoor_mv_breaker' ? 'outdoor_breaker' : value
-}
 export type Point = { x: number; y: number }
 export type Viewport = Point & { zoom: number }
 export type ConnectionRef = {

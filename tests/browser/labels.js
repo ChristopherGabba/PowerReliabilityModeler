@@ -6,7 +6,7 @@
   const owner = 'label-test-' + uid(),
     id = uid()
   const source = new Editor()
-  const key = source.add('hv_breaker', { x: 0, y: 0 })
+  const key = source.add('indoor_drawout_breaker', { x: 0, y: 0 })
   const document = source.snapshot()
   let session,
     release,

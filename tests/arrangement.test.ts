@@ -8,7 +8,7 @@ import type { Bounds, Patch } from '../src/core/types'
 function fixture() {
   const editor = new Editor()
   const keys = [
-    editor.add('hv_breaker', { x: 100, y: 120 }),
+    editor.add('indoor_drawout_breaker', { x: 100, y: 120 }),
     editor.add('oil_filled_transformer', { x: 360, y: 390 }),
     editor.add('bus', { x: 880, y: 710 }),
   ]
@@ -78,8 +78,8 @@ describe('Selection arrangement', () => {
   it('distributes several interior items and a visual group with equal edge gaps', () => {
     const e = new Editor()
     const first = e.add('utility_source', { x: 0, y: 0 })
-    const a = e.add('hv_breaker', { x: 180, y: 90 })
-    const b = e.add('hv_breaker', { x: 260, y: 180 })
+    const a = e.add('indoor_drawout_breaker', { x: 180, y: 90 })
+    const b = e.add('indoor_drawout_breaker', { x: 260, y: 180 })
     e.select([a, b])
     e.group()
     const middle = e.add('ring_main_unit', { x: 540, y: 0 })
@@ -100,7 +100,7 @@ describe('Selection arrangement', () => {
 
   it('moves complete groups together, carrying manual wiring and labels without changing failovers', () => {
     const e = new Editor()
-    const a = e.add('hv_breaker', { x: 100, y: 300 })
+    const a = e.add('indoor_drawout_breaker', { x: 100, y: 300 })
     const b = e.add('dry_type_transformer', { x: 350, y: 500 })
     const target = e.add('generator', { x: 1000, y: 0 })
     e.connect({ equipment_key: a, port_id: 'out' }, { equipment_key: b, port_id: 'primary' })
@@ -179,12 +179,12 @@ describe('Selection arrangement', () => {
 
   it('does nothing with too few items and does not auto-connect newly coincident terminals', () => {
     const e = new Editor(),
-      key = e.add('hv_breaker', { x: 0, y: 0 })
+      key = e.add('indoor_drawout_breaker', { x: 0, y: 0 })
     e.select([])
     e.arrange('top')
     e.select([key])
     e.arrange('top')
-    const other = e.add('hv_breaker', { x: 300, y: 80 })
+    const other = e.add('indoor_drawout_breaker', { x: 300, y: 80 })
     e.select([key, other])
     const before = e.snapshot()
     e.arrange('horizontal')

@@ -16,7 +16,7 @@ export function exampleDocument(): DocumentRecord {
     return key
   }
   const utility = add('utility_source', 'utility_north', -260, -340)
-  const breaker = add('outdoor_breaker', 'main_breaker', -260, -160)
+  const breaker = add('outdoor_mv_hv_breaker', 'main_breaker', -260, -160)
   const transformer = add('oil_filled_transformer', 'transformer_01', -260, 40)
   const bus = add('bus', 'main_bus', 0, 220)
   const gen = add('generator', 'standby_generator', 380, -140, 0.48)
@@ -61,7 +61,7 @@ export function benchmarkDocument(): DocumentRecord {
   for (let i = 0; i < 1996; i++)
     d.equipment.push(
       eq(
-        i % 3 === 0 ? 'cable' : i % 3 === 1 ? 'hv_breaker' : 'dry_type_transformer',
+        i % 3 === 0 ? 'cable' : i % 3 === 1 ? 'indoor_drawout_breaker' : 'dry_type_transformer',
         i + 4,
         (i % 50) * 120,
         Math.floor(i / 50) * 180,

@@ -3,7 +3,6 @@ import { CATALOG } from './catalog'
 import { endpointPosition, distance } from './geometry'
 import {
   EQUIPMENT_TYPES,
-  normalizeEquipmentType,
   uid,
   type DocumentRecord,
   type ModelFile,
@@ -33,7 +32,7 @@ const header = {
 }
 const equipmentBase = point.extend({
   id,
-  equipment_type: z.preprocess(normalizeEquipmentType, z.enum(EQUIPMENT_TYPES)),
+  equipment_type: z.enum(EQUIPMENT_TYPES),
   rotation: z.union([z.literal(0), z.literal(90), z.literal(180), z.literal(270)]),
   kv_rating: number.nonnegative().nullable(),
   amp_rating: number.nonnegative().nullable(),

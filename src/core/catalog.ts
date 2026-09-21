@@ -22,18 +22,18 @@ export const CATALOG: Record<EquipmentType, CatalogEntry> = {
     height: 64,
     ports: terminal,
   },
-  hv_breaker: {
+  indoor_drawout_breaker: {
     name: 'Indoor drawout breaker',
     short: 'Indoor breaker',
-    description: 'Indoor drawout high-voltage circuit breaker',
+    description: 'Indoor drawout circuit breaker',
     width: 56,
     height: 56,
     ports: pair,
   },
-  outdoor_breaker: {
-    name: 'Outdoor breaker',
+  outdoor_mv_hv_breaker: {
+    name: 'Outdoor MV/HV breaker',
     short: 'Outdoor breaker',
-    description: 'Outdoor circuit breaker',
+    description: 'Outdoor medium- or high-voltage circuit breaker',
     width: 60,
     height: 60,
     ports: pair,

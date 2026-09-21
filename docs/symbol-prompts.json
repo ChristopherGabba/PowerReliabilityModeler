@@ -7,11 +7,11 @@
       "An electrical utility source symbol: a clean circle containing a simple sine wave, vertically oriented."
     ],
     [
-      "hv_breaker",
+      "indoor_drawout_breaker",
       "A high-voltage circuit breaker single-line symbol: a small hollow square with a clean diagonal opening contact inside, vertically oriented."
     ],
     [
-      "outdoor_mv_breaker",
+      "outdoor_mv_hv_breaker",
       "An outdoor medium-voltage breaker single-line symbol: a hollow square enclosing a simple switch contact, with a subtle second outer rectangular enclosure, vertically oriented."
     ],
     [

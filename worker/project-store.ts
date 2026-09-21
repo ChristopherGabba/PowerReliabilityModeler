@@ -1,7 +1,7 @@
 import { labelOffsetsSchema, type LabelOffsets } from '../src/core/labels'
 import { DurableObject } from 'cloudflare:workers'
 import { applyPatch, validateDocument } from '../src/core/schema'
-import { normalizeEquipmentType, type DocumentRecord, type Patch } from '../src/core/types'
+import type { DocumentRecord, Patch } from '../src/core/types'
 import type { Env } from './index'
 
 type Meta = {
@@ -29,11 +29,7 @@ export class ProjectStore extends DurableObject<Env> {
       equipment: this.ctx.storage.sql
         .exec<{ value: string }>('SELECT value FROM equipment ORDER BY rowid')
         .toArray()
-        .map((r) => {
-          const equipment = JSON.parse(r.value)
-          equipment.equipment_type = normalizeEquipmentType(equipment.equipment_type)
-          return equipment
-        }),
+        .map((r) => JSON.parse(r.value)),
       connectors: this.ctx.storage.sql
         .exec<{ value: string }>('SELECT value FROM connectors ORDER BY rowid')
         .toArray()

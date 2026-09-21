@@ -26,12 +26,12 @@ describe('Private equipment labels', () => {
   })
   it('calculates derated three-phase MVA and distinguishes missing ratings from zero', () => {
     const editor = new Editor()
-    const key = editor.add('hv_breaker', { x: 0, y: 0 })
+    const key = editor.add('indoor_drawout_breaker', { x: 0, y: 0 })
     expect(deratedMva(editor.equipment.get(key)!)).toBeNull()
     editor.update(key, { kv_rating: 13.8, amp_rating: 1200, derating_multiplier: 0.99 })
     expect(deratedMva(editor.equipment.get(key)!)).toBeCloseTo(28.395933759607, 10)
     expect(equipmentLabel(editor.equipment.get(key)!)).toBe(
-      'hv_breaker_1\n13.8 kV · 1,200 A\nDerating × 0.99\n28.396 MVA',
+      'indoor_drawout_breaker_1\n13.8 kV · 1,200 A\nDerating × 0.99\n28.396 MVA',
     )
     editor.update(key, { derating_multiplier: 0 })
     expect(deratedMva(editor.equipment.get(key)!)).toBe(0)
@@ -40,7 +40,7 @@ describe('Private equipment labels', () => {
   })
   it('moves labels with independent history, without moving equipment or changing JSON/model revision', () => {
     const editor = new Editor()
-    const key = editor.add('hv_breaker', { x: 10, y: 20 })
+    const key = editor.add('indoor_drawout_breaker', { x: 10, y: 20 })
     const model = exportModel(editor.snapshot()),
       revision = editor.revision
     const patches: unknown[] = [],
@@ -63,7 +63,7 @@ describe('Private equipment labels', () => {
   })
   it('keeps offsets through renaming, rotation, movement, copying, deletion, and undo', () => {
     const editor = new Editor()
-    const key = editor.add('hv_breaker', { x: 0, y: 0 })
+    const key = editor.add('indoor_drawout_breaker', { x: 0, y: 0 })
     editor.setLabelOffset(key, { x: 100, y: -50 })
     editor.update(key, { id: 'main' })
     editor.rotate()
@@ -88,7 +88,7 @@ describe('Private equipment labels', () => {
 describe('Selected failover triggers', () => {
   it('highlights trigger unions, excludes targets, and refreshes after selection, edits, deletion and undo', () => {
     const e = new Editor()
-    const owner = e.add('hv_breaker', { x: 0, y: 0 })
+    const owner = e.add('indoor_drawout_breaker', { x: 0, y: 0 })
     const trigger = e.add('utility_source', { x: 300, y: 0 })
     const target = e.add('generator', { x: 600, y: 0 })
     e.setFailover(owner, [trigger], target)

@@ -1,11 +1,11 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { Miniflare, convertV4MiniflareOptions } from 'miniflare'
 import { build } from 'esbuild'
-import { createHash, generateKeyPairSync, sign } from 'node:crypto'
+import { generateKeyPairSync, sign } from 'node:crypto'
 import { readFile } from 'node:fs/promises'
 import { emptyDocument, uid } from '../src/core/types'
 import { Editor } from '../src/core/editor'
-import { diffDocuments, patchSchema } from '../src/core/schema'
+import { diffDocuments } from '../src/core/schema'
 
 let runtime: Miniflare
 const origin = 'https://modeler.test'
@@ -85,42 +85,32 @@ afterAll(async () => {
   await runtime?.dispose()
 })
 describe('Authenticated Cloudflare storage', () => {
-  it('reads legacy outdoor rows and retries a pre-rename mutation without a false conflict', async () => {
+  it('saves both breaker types and retries changes without altering the document', async () => {
     const id = uid(),
-      before = emptyDocument('Legacy model'),
-      e = new Editor(before)
-    const key = e.add('outdoor_breaker', { x: 0, y: 0 })
-    e.update(key, { id: 'outdoor_mv_breaker_1', amp_rating: 1200 })
+      e = new Editor()
+    e.add('indoor_drawout_breaker', { x: 0, y: 0 })
+    const before = e.snapshot()
+    const key = e.add('outdoor_mv_hv_breaker', { x: 200, y: 0 })
+    e.update(key, { amp_rating: 1200 })
     const after = e.snapshot()
-    const patch = JSON.parse(
-      JSON.stringify(patchSchema.parse(diffDocuments(before, after))).replaceAll(
-        '"equipment_type":"outdoor_breaker"',
-        '"equipment_type":"outdoor_mv_breaker"',
-      ),
+    const patch = structuredClone(diffDocuments(before, after))
+    expect((await request('/projects', 'user_a', 'POST', { id, document: before })).status).toBe(
+      201,
     )
-    await request('/projects', 'user_a', 'POST', { id, document: before })
     const mutation_id = uid(),
-      expected_revision = 0
-    const fingerprint = createHash('sha256')
-      .update(JSON.stringify({ expected_revision, patch }))
-      .digest('hex')
-    // Seed the same raw row and fingerprint the previous server version persisted.
-    const namespace = await runtime.getDurableObjectNamespace('PROJECTS')
-    const store = namespace.get(namespace.idFromName(id)) as any
-    expect(
-      (await store.change('user_a', expected_revision, mutation_id, fingerprint, patch)).revision,
-    ).toBe(1)
+      expected_revision = 0,
+      path = `/projects/${id}/changes`,
+      change = { mutation_id, expected_revision, patch }
+    expect(await (await request(path, 'user_a', 'POST', change)).json()).toEqual({ revision: 1 })
     const offsets = { [key]: { x: 80, y: -20, anchor: 'right' } }
     await request(`/projects/${id}/view`, 'user_a', 'POST', { label_offsets: offsets })
     const saved = (await (await request(`/projects/${id}`)).json()) as any
     expect(saved.document).toEqual(after)
     expect(saved.label_offsets).toEqual(offsets)
-    const path = `/projects/${id}/changes`
-    const change = { mutation_id, expected_revision, patch }
     expect(await (await request(path, 'user_a', 'POST', change)).json()).toEqual({ revision: 1 })
     patch.equipment.put[0].amp_rating = 2000
     expect((await request(path, 'user_a', 'POST', change)).status).toBe(409)
-    e.add('disconnect_switch', { x: 200, y: 0 })
+    e.add('disconnect_switch', { x: 400, y: 0 })
     const next = {
       mutation_id: uid(),
       expected_revision: 1,
@@ -167,7 +157,7 @@ describe('Authenticated Cloudflare storage', () => {
   it('stores private label offsets separately from JSON and revisions, with owner isolation and atomic validation', async () => {
     const id = uid(),
       e = new Editor()
-    const key = e.add('hv_breaker', { x: 0, y: 0 }),
+    const key = e.add('indoor_drawout_breaker', { x: 0, y: 0 }),
       document = e.snapshot()
     await request('/projects', 'user_a', 'POST', { id, document })
     const path = `/projects/${id}/view`

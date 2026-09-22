@@ -1,3 +1,4 @@
+import { EquipmentSymbol } from './EquipmentSymbol'
 import { mvaLabel } from '../core/labels'
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import { ArrowRight, Crosshair, RotateCw, Trash2, X, Zap, Cable, GitBranch } from 'lucide-react'
@@ -154,7 +155,7 @@ export function Inspector({
       </div>
       <div className="equipment-heading">
         <div className="equipment-icon">
-          <img src={`/symbols/${item.equipment_type}.png`} alt="" />
+          <EquipmentSymbol type={item.equipment_type} />
         </div>
         <div>
           <h2>{catalog.name}</h2>

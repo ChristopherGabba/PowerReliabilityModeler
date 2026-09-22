@@ -1,22 +1,15 @@
-import { Application, Assets, BitmapText, Container, Graphics, Sprite, Texture } from 'pixi.js'
+import { Application, BitmapText, Container, Graphics } from 'pixi.js'
 import { CATALOG } from '../core/catalog'
 import { equipmentLabel } from '../core/labels'
 import { Editor } from '../core/editor'
-import { tintableSymbol } from './symbolTexture'
-import { drawUtilitySource } from './utilitySymbol'
+import { drawEquipmentSymbol } from './equipmentSymbol'
+import { DIAGRAM_STROKE_WIDTH } from '../core/symbols'
 import { endpointPosition, routeConnector, worldPoint } from '../core/geometry'
-import {
-  EQUIPMENT_TYPES,
-  type ConnectorRecord,
-  type EquipmentRecord,
-  type EquipmentType,
-  type Point,
-} from '../core/types'
+import type { ConnectorRecord, EquipmentRecord, Point } from '../core/types'
 
 type NodeView = {
   root: Container
   body: Container
-  symbol: Sprite | null
   lines: Graphics
   label: BitmapText
   labelRecord: EquipmentRecord | null
@@ -40,7 +33,6 @@ export class CanvasRenderer {
   private placementGhost: NodeView | null = null
   private nodes = new Map<string, NodeView>()
   private edges = new Map<string, EdgeView>()
-  private textures = new Map<EquipmentType, Texture>()
   private frameId = 0
   private disposed = false
   private observer: ResizeObserver | undefined
@@ -98,25 +90,8 @@ export class CanvasRenderer {
     })
     this.observer.observe(this.host)
     this.request()
-    await Promise.all(
-      EQUIPMENT_TYPES.map(async (type) => {
-        try {
-          const texture = await Assets.load<Texture>(`/symbols/${type}.png`)
-          if (!this.disposed) {
-            this.textures.set(type, tintableSymbol(texture))
-            for (const node of this.nodes.values())
-              if (node.record?.equipment_type === type) node.record = null
-            this.request()
-          }
-        } catch {
-          if (!this.disposed)
-            this.editor.message(
-              `The ${CATALOG[type].name} artwork could not load. Reload to retry.`,
-            )
-        }
-      }),
-    )
   }
+
   private contextLost = (event: Event) => {
     event.preventDefault()
     this.editor.message('Graphics paused. Your model is retained while the canvas reconnects.')
@@ -157,7 +132,6 @@ export class CanvasRenderer {
       root,
       body,
       lines,
-      symbol: null,
       label,
       labelRecord: null,
       labelDetails: false,
@@ -235,40 +209,14 @@ export class CanvasRenderer {
               ? ink
               : disconnected
     v.lines.clear()
-    if (v.symbol)
-      v.symbol.visible = e.equipment_type !== 'bus' && e.equipment_type !== 'utility_source'
-    if (e.equipment_type === 'bus') {
-      const half = (e.bus_length ?? 200) / 2
-      v.lines.moveTo(-half, 0).lineTo(half, 0).stroke({ width: 6, color, cap: 'round' })
-    } else if (e.equipment_type === 'utility_source') {
-      drawUtilitySource(v.lines, color, c.ports[0])
-    } else {
-      const texture = this.textures.get(e.equipment_type)
-      if (texture) {
-        if (!v.symbol) {
-          v.symbol = new Sprite(texture)
-          v.symbol.anchor.set(0.5)
-          v.body.addChildAt(v.symbol, 0)
-        }
-        v.symbol.texture = texture
-        v.symbol.width = c.width * 1.38
-        v.symbol.height = c.height * 1.38
-        v.symbol.tint = color
-      } else
-        v.lines
-          .roundRect(-c.width / 2, -c.height / 2, c.width, c.height, 6)
-          .fill({ color: 0xffffff })
-          .stroke({ color, width: 1.5 })
-      for (const p of c.ports)
-        v.lines
-          .moveTo(p.x - p.dx * (p.leadLength ?? 12), p.y - p.dy * (p.leadLength ?? 12))
-          .lineTo(p.x, p.y)
-          .stroke({ width: 1.7, color })
-    }
+    drawEquipmentSymbol(v.lines, e.equipment_type, color, e.bus_length)
     if (terminals) {
       if (e.equipment_type !== 'bus')
         for (const p of c.ports)
-          v.lines.circle(p.x, p.y, 3.4).fill(0xffffff).stroke({ width: 1.4, color })
+          v.lines
+            .circle(p.x, p.y, 3.4)
+            .fill(0xffffff)
+            .stroke({ width: DIAGRAM_STROKE_WIDTH, color })
     }
     v.label.style.fill = selected || trigger || pick ? color : connected ? 0x526074 : 0x9aa8b7
     v.label.visible = this.editor.viewport.zoom > 0.38
@@ -283,12 +231,12 @@ export class CanvasRenderer {
     this.updateNode(v, e)
     return v
   }
-  private drawPath(g: Graphics, points: Point[], color = 0x657487, width = 1.8) {
+  private drawPath(g: Graphics, points: Point[], color = 0x657487) {
     g.clear()
     if (!points.length) return
     g.moveTo(points[0].x, points[0].y)
     for (const p of points.slice(1)) g.lineTo(p.x, p.y)
-    g.stroke({ color, width, cap: 'round', join: 'round' })
+    g.stroke({ color, width: DIAGRAM_STROKE_WIDTH, cap: 'butt', join: 'round' })
   }
   private edge(c: ConnectorRecord) {
     let view = this.edges.get(c.id)
@@ -297,10 +245,9 @@ export class CanvasRenderer {
       this.edges.set(c.id, view)
       this.wires.addChild(view.graphics)
     }
-    const selected = this.editor.selectedConnector === c.id
     const color = this.connectorColor(c)
     if (view.record !== c || view.color !== color) {
-      this.drawPath(view.graphics, c.points, color, selected ? 2.4 : 1.8)
+      this.drawPath(view.graphics, c.points, color)
       view.record = c
       view.color = color
     }
@@ -507,7 +454,7 @@ export class CanvasRenderer {
         .moveTo(start.x, start.y)
         .lineTo(start.x, preview.to.y)
         .lineTo(preview.to.x, preview.to.y)
-        .stroke({ color: blue, width: 2 / v.zoom })
+        .stroke({ color: blue, width: DIAGRAM_STROKE_WIDTH, cap: 'butt', join: 'round' })
     }
     if (e.snap) {
       for (const ep of [e.snap.from, e.snap.to]) {

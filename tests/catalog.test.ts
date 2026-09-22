@@ -85,10 +85,60 @@ it.each(['hv_breaker', 'outdoor_breaker', 'outdoor_mv_breaker', 'unknown_breaker
 )
 
 describe('Disconnect switch', () => {
+  it.each([0, 90, 180, 270])('reopens former disconnect routes at %i degrees', (rotation) => {
+    // The old disconnect used the same +/-40 terminals as the outdoor breaker.
+    const e = new Editor()
+    const first = e.add('outdoor_mv_hv_breaker', { x: 0, y: 0 })
+    const second = e.add('outdoor_mv_hv_breaker', { x: 200, y: 200 })
+    for (let angle = 0; angle < rotation; angle += 90) {
+      e.rotate(new Set([first]))
+      e.rotate(new Set([second]))
+    }
+    const id = e.connect(
+      { equipment_key: first, port_id: 'out' },
+      { equipment_key: second, port_id: 'in' },
+    )!
+    for (const bends of [[], [{ x: 100, y: 100 }]]) {
+      e.setBends(id, bends)
+      const legacy = structuredClone(e.snapshot())
+      const portable = exportModel(legacy)
+      for (const equipment of [legacy.equipment, portable.equipment])
+        for (const item of equipment) item.equipment_type = 'disconnect_switch'
+      const before = structuredClone(legacy)
+      const migrated = validateDocument(legacy)
+      expect(legacy).toEqual(before)
+      expect(migrated.connectors[0].points).not.toEqual(legacy.connectors[0].points)
+      const start = endpointPosition(migrated.equipment[0], { port_id: 'out' })
+      const end = endpointPosition(migrated.equipment[1], { port_id: 'in' })
+      expect(migrated.connectors[0].points[0]).toEqual({ x: start.x, y: start.y })
+      expect(migrated.connectors[0].points.at(-1)).toEqual({ x: end.x, y: end.y })
+      expect(migrated.connectors[0].bends).toEqual(bends)
+      expect(validateDocument(migrated)).toEqual(migrated)
+      expect(new Editor(legacy).snapshot()).toEqual(migrated)
+      expect(exportModel(importModel(portable))).toEqual(exportModel(migrated))
+      const patch = diffDocuments(emptyDocument(), legacy)
+      expect(applyPatch(emptyDocument(), patch)).toEqual(migrated)
+    }
+  })
+
+  it('still rejects unrelated endpoint mismatches in former disconnect routes', () => {
+    const e = new Editor()
+    const key = e.add('disconnect_switch', { x: 0, y: 0 })
+    const load = e.add('load', { x: 0, y: 200 })
+    e.connect({ equipment_key: key, port_id: 'out' }, { equipment_key: load, port_id: 'terminal' })
+    const legacy = e.snapshot()
+    legacy.connectors[0].points[0].y = 40
+    legacy.connectors[0].points.at(-1)!.y += 1
+    expect(() => validateDocument(legacy)).toThrow('endpoint coordinates')
+    legacy.connectors[0].points.at(-1)!.y -= 1
+    legacy.connectors[0].points[0].y = 41
+    expect(() => validateDocument(legacy)).toThrow('endpoint coordinates')
+  })
+
   it('snaps onto a source, accepts one connector per terminal and rotates its connected endpoints', () => {
     const e = new Editor()
     const source = e.add('utility_source', { x: 0, y: 0 })
-    const key = e.add('disconnect_switch', { x: 0, y: 78 })
+    const key = e.add('disconnect_switch', { x: 0, y: 68 })
     expect(e.equipment.get(key)!.id).toBe('disconnect_switch_1')
     expect(e.connectors.size).toBe(1)
     const load = e.add('load', { x: 0, y: 300 })
@@ -99,8 +149,8 @@ describe('Disconnect switch', () => {
     expect(e.connect({ equipment_key: source, port_id: 'terminal' }, from)).toBeNull()
     e.rotate(new Set([key]))
     expect(endpointPosition(e.equipment.get(key)!, { port_id: 'in' })).toMatchObject({
-      x: 40,
-      y: 78,
+      x: 30,
+      y: 68,
     })
     const model = exportModel(e.snapshot())
     expect(

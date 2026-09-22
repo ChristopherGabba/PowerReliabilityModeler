@@ -8,7 +8,13 @@
     assert(selected.length === 1000, 'Run measure.js before this check')
     for (const key of selected) {
       const view = previous.renderer.nodes.get(key)
-      if (view?.symbol) assert(view.symbol.tint === 0x0088ff, 'Large selection lost its blue tint')
+      if (view)
+        assert(
+          view.lines.context.instructions
+            .filter((instruction) => instruction.action === 'stroke')
+            .every((instruction) => instruction.data.style.color === 0x0088ff),
+          'Large selection lost its blue tint',
+        )
     }
   }
   const Renderer = previous.renderer.constructor

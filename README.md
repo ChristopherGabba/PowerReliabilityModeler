@@ -2,7 +2,7 @@
 
 A desktop one-line editor built with React, a custom TypeScript graph editor, PixiJS, Clerk, and Cloudflare. Equipment owns its world position and engineering metadata. Connector endpoints own graph connectivity; portable JSON also contains derived equipment backlinks.
 
-**PowerSystemsModelToJSON** is deployed at [powersystemsmodeltojson.com](https://powersystemsmodeltojson.com), with a production Clerk instance and isolated Cloudflare storage. The [Cloudflare preview](https://powersystemsmodeltojson-preview.christophergabba.workers.dev) remains available with its existing projects. Validation results and remaining browser/performance checks are in [docs/validation](docs/validation/README.md).
+**PowerSystemsModelToJSON** is deployed at [powersystemsmodeltojson.com](https://powersystemsmodeltojson.com), with a production Clerk instance and isolated Cloudflare storage. The [Cloudflare preview](https://powersystemsmodeltojson-preview.christophergabba.workers.dev) remains available with its existing projects. Repeatable checks and browser/performance coverage are in the [validation guide](docs/validation/README.md).
 
 ## Run
 
@@ -21,6 +21,8 @@ Set the Clerk publishable key in `.env.local` as `VITE_CLERK_PUBLISHABLE_KEY`. S
 For a local editor-only development session, run `VITE_LOCAL_DEMO=true bun run dev`. This mode is compiled out of production. Production has no anonymous editor or authentication bypass. Missing Clerk configuration fails closed.
 
 ## Editing
+
+Each model opens at `/models/<id>`. Refreshing or reopening that URL restores the same model, including locally saved changes. Browser Back/Forward and the Models button navigate between the editor and your model library. Model URLs survive renaming and still require the owning account to sign in.
 
 Drag an item from the bottom palette onto the canvas, or click an item and then click the canvas. Hold Shift when dropping or clicking to keep placing that equipment. Escape or dropping outside the canvas cancels a palette drag. Double-click equipment for its inspector. Drag a terminal to another free terminal or a bus. Available nearby terminals also snap and connect when equipment is dropped. Drag a bus bar to move it; connections can only be initiated from other equipment. Select a bus to resize either end or rotate it with Ctrl + R. Existing taps stay fixed during resizing. Select a connector and drag a segment handle to adjust its orthogonal route.
 
@@ -51,7 +53,7 @@ When multiple items are selected, the second row of the selection toolbar aligns
 
 Shortcuts act when the canvas has focus and leave inspector text editing alone. Each completed gesture is one undo operation. Duplicated equipment gets unique IDs by incrementing trailing numbers (`breaker_1` → `breaker_2`, `transformer_01` → `transformer_02`) and skipping IDs already in use. IDs without a trailing number start at `_1`. Copies retain ratings and internal wiring, detach external wiring, and clear failovers. Groups are visual and never change equipment coordinates.
 
-The breaker types are `indoor_drawout_breaker` and `outdoor_mv_hv_breaker`. They use the indoor drawout and clean outdoor curved symbols respectively, each with `in` and `out` terminals. Equipment IDs and exported JSON use these type names. `disconnect_switch` uses two circular contacts and an open angled blade, with `in` and `out` terminals. Its icon does not simulate an open/closed state. The RMU has two upper terminals (`left`, `right`) and a lower feeder. Oil-filled and dry-type transformers share the same base artwork, with an oil drop inside the oil-filled symbol's lower circle. Artwork was generated with GPT Image Gen; prompts and user-requested revisions are recorded in `docs/symbol-prompts.json` and `docs/symbol-revisions.json`.
+The breaker types are `indoor_drawout_breaker` and `outdoor_mv_hv_breaker`. They use the indoor drawout symbol and an outdoor square with centered top and bottom leads respectively, each with `in` and `out` terminals. Equipment IDs and exported JSON use these type names. `disconnect_switch` uses two circular contacts and an open angled blade, with `in` and `out` terminals. Its diagram size and terminal spacing are 75% of the original size; saved routes using the former terminal positions are adapted when opened or imported. Its icon does not simulate an open/closed state. The RMU has two upper terminals (`left`, `right`) and a lower feeder. Oil-filled and dry-type transformers share the same base artwork, with an oil drop inside the oil-filled symbol's lower circle. All electrical strokes use one 1.4-unit line weight, including busbars, leads, and selected connectors. Shared vector paths render the canvas, palette, inspector, and sign-in example; each symbol includes its full leads to the catalog terminals, avoiding raster/lead overlap. The original GPT Image Gen artwork remains as reference, with prompts and revisions in `docs/symbol-prompts.json` and `docs/symbol-revisions.json`.
 
 ## Portable model
 
@@ -82,7 +84,7 @@ bun run preview:benchmark
 
 The runtime tests use actual workerd, D1, SQLite Durable Objects, and locally signed test JWTs verified by Clerk. They do not mock authentication. Browser scripts in `tests/browser` exercise the compiled worker and renderer through the separate benchmark harness. The harness is never included in the application deployment.
 
-`tests/performance` contains the 2,000-equipment / 2,500-connector scene, including four buses with 500 taps each. Add `?renderer=webgpu` for an identical WebGPU comparison. Measurements and remaining release checks are in `docs/validation`.
+`tests/performance` contains the 2,000-equipment / 2,500-connector scene, including four buses with 500 taps each. Add `?renderer=webgpu` for an identical WebGPU comparison. See the [validation guide](docs/validation/README.md) for browser checks and measurement limitations. Keep screenshots, raw reports, and other temporary validation output outside the repository, in an OS temporary directory.
 
 ## Cloudflare preview and release
 

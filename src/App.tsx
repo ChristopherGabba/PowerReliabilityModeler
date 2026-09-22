@@ -19,6 +19,7 @@ import { Editor } from './core/editor'
 import { emptyDocument, uid, type DocumentRecord, type ProjectSummary } from './core/types'
 import { exampleDocument, benchmarkDocument } from './core/fixtures'
 import { errorMessage } from './core/schema'
+import { modelIdFromPath, modelPath, updateModelLocation } from './core/modelRoutes'
 import { ApiError, ProjectApi } from './persistence/api'
 import { localProjects, loadLocal, removeLocal } from './persistence/local'
 import { ModelWorker, ProjectSession } from './persistence/session'
@@ -65,6 +66,8 @@ export default function App() {
 function Authenticated() {
   const { isLoaded, isSignedIn, userId, getToken } = useAuth()
   const api = useMemo(() => new ProjectApi(() => getToken()), [getToken])
+  const linkedModel = modelIdFromPath(window.location.pathname)
+  const returnToModel = linkedModel ? modelPath(linkedModel) + window.location.search : undefined
   if (!isLoaded)
     return (
       <div className="page-loader">
@@ -77,6 +80,8 @@ function Authenticated() {
       <SignInPage>
         <SignIn
           routing="hash"
+          forceRedirectUrl={returnToModel}
+          signUpForceRedirectUrl={returnToModel}
           appearance={{
             elements: {
               rootBox: { width: '100%' },
@@ -186,7 +191,10 @@ function Client({
     [deleteTarget, setDeleteTarget] = useState<ProjectSummary | null>(null),
     [menu, setMenu] = useState<string | null>(null)
   const file = useRef<HTMLInputElement>(null),
-    opened = useRef<OpenWorkspace | null>(null)
+    opened = useRef<OpenWorkspace | null>(null),
+    navigationQueue = useRef(Promise.resolve()),
+    navigationRequest = useRef(0),
+    alive = useRef(false)
   async function list() {
     setLoading(true)
     try {
@@ -221,19 +229,84 @@ function Client({
     }
   }
   useEffect(() => {
-    void list()
+    alive.current = true
+    const followLocation = () => void navigate(modelIdFromPath(window.location.pathname), null)
+    window.addEventListener('popstate', followLocation)
+    followLocation()
     return () => {
+      alive.current = false
+      navigationRequest.current++
+      window.removeEventListener('popstate', followLocation)
       const active = opened.current
-      if (active) void active.session.close().finally(active.release)
+      opened.current = null
+      if (active)
+        void active.session
+          .close()
+          .catch(() => {})
+          .finally(active.release)
     }
   }, [owner])
-  async function open(
-    id: string,
+
+  // Serialize session changes so Back/Forward cannot race a pending model load
+  // or release a project's lock before its local writes have finished.
+  function navigate(
+    id: string | null | undefined,
+    history: 'push' | 'replace' | null = 'push',
     initial?: DocumentRecord,
     cloud?: { document: DocumentRecord; revision: number },
   ) {
+    const request = ++navigationRequest.current
+    const current = () => alive.current && request === navigationRequest.current
     setBusy(true)
     setError('')
+    const task = navigationQueue.current.then(async () => {
+      if (!current()) return
+      try {
+        const active = opened.current
+        if (id && active?.session.id === id) {
+          if (history) updateModelLocation(id, history === 'replace')
+          return
+        }
+        if (active) {
+          await active.session.close()
+          active.release()
+          opened.current = null
+          setWorkspace(null)
+        }
+        if (!current()) return
+        if (id === undefined) throw new Error('This model URL is not valid.')
+        if (id === null) {
+          if (history) updateModelLocation(null, history === 'replace')
+          await list()
+          return
+        }
+        const next = await loadWorkspace(id, current, initial, cloud)
+        if (!next) return
+        opened.current = next
+        setWorkspace(next)
+        // Direct links are canonicalized without adding a history entry.
+        updateModelLocation(next.session.id, history !== 'push')
+      } catch (err) {
+        if (!current()) return
+        if (opened.current) {
+          // A failed local flush keeps the current editor and URL intact.
+          updateModelLocation(opened.current.session.id, true)
+        } else await list()
+        if (current()) setError(errorMessage(err))
+      } finally {
+        if (current()) setBusy(false)
+      }
+    })
+    navigationQueue.current = task.catch(() => {})
+    return task
+  }
+
+  async function loadWorkspace(
+    id: string,
+    current: () => boolean,
+    initial?: DocumentRecord,
+    cloud?: { document: DocumentRecord; revision: number },
+  ): Promise<OpenWorkspace | null> {
     let release: (() => void) | undefined, session: ProjectSession | undefined
     try {
       release = await claimProject(owner, id)
@@ -241,36 +314,62 @@ function Client({
         try {
           cloud = await api.get(id)
         } catch (err) {
-          if (err instanceof ApiError && err.status !== 503) throw err
-          if (!(await loadLocal(owner, id))) throw err
+          const cached = await loadLocal(owner, id)
+          const pendingCreation =
+            err instanceof ApiError && err.status === 404 && cached?.needsCreate
+          if (!cached || (err instanceof ApiError && err.status !== 503 && !pendingCreation))
+            throw err
         }
       }
+      if (!current()) {
+        release()
+        return null
+      }
       let editor: Editor
+      let routedId = id
       session = new ProjectSession(id, owner, api, (nextId, name) => {
         editor.updateHeader({ model_name: name })
         editor.message(
           'A newer cloud version was found. Your changes are safe in this recovered copy.',
         )
-        setProjects((items) => items.map((p) => (p.id === id ? { ...p, id: nextId, name } : p)))
+        if (
+          opened.current?.session === session &&
+          modelIdFromPath(window.location.pathname) === routedId
+        )
+          updateModelLocation(nextId, true)
+        const previousId = routedId
+        routedId = nextId
+        setProjects((items) =>
+          items.map((p) => (p.id === previousId ? { ...p, id: nextId, name } : p)),
+        )
       })
       const document = await session.open(cloud, initial)
+      if (!current()) {
+        await session.close()
+        release()
+        return null
+      }
       editor = new Editor(document)
       session.attach(editor)
-      const active = { editor, session, release }
-      opened.current = active
-      setWorkspace(active)
+      return { editor, session, release }
     } catch (err) {
       release?.()
       session?.worker.dispose()
-      setError(errorMessage(err))
-    } finally {
-      setBusy(false)
+      throw err
     }
+  }
+  function open(
+    id: string,
+    initial?: DocumentRecord,
+    cloud?: { document: DocumentRecord; revision: number },
+  ) {
+    return navigate(id, 'push', initial, cloud)
   }
   async function create(document: DocumentRecord) {
     setCreating(false)
     setBusy(true)
     const id = uid()
+    const request = navigationRequest.current
     try {
       let cloud
       if (api) {
@@ -280,29 +379,18 @@ function Client({
           if (!(err instanceof TypeError) && navigator.onLine) throw err
         }
       }
+      if (!alive.current || request !== navigationRequest.current) return
       await open(id, document, cloud)
     } catch (err) {
       setError(errorMessage(err))
       setBusy(false)
     }
   }
-  async function back() {
-    if (workspace) {
-      setBusy(true)
-      try {
-        await workspace.session.close()
-        workspace.release()
-        opened.current = null
-        setWorkspace(null)
-        await list()
-      } catch (err) {
-        setError(errorMessage(err))
-      } finally {
-        setBusy(false)
-      }
-    }
+  function back() {
+    return navigate(null)
   }
   async function duplicate(project: ProjectSummary) {
+    const request = navigationRequest.current
     setMenu(null)
     setBusy(true)
     try {
@@ -313,6 +401,7 @@ function Client({
           ? (await api.get(project.id)).document
           : local?.document
       if (!document) throw new Error('Project is not available locally')
+      if (!alive.current || request !== navigationRequest.current) return
       await create({ ...document, model_name: `${document.model_name} — copy` })
     } catch (err) {
       setError(errorMessage(err))
@@ -320,10 +409,12 @@ function Client({
     }
   }
   async function importFile(value: File) {
+    const request = navigationRequest.current
     setBusy(true)
     const worker = new ModelWorker()
     try {
       const document = await worker.call<DocumentRecord>('import', await value.text())
+      if (!alive.current || request !== navigationRequest.current) return
       await create(document)
     } catch (err) {
       setError(errorMessage(err))
@@ -333,15 +424,34 @@ function Client({
       if (file.current) file.current.value = ''
     }
   }
+  const errorNotice = error && (
+    <div className={`error-banner ${workspace ? 'navigation-error' : ''}`} role="alert">
+      <span>{error}</span>
+      {!workspace && window.location.pathname !== '/' && (
+        <button onClick={() => void back()}>Back to models</button>
+      )}
+      <button aria-label="Dismiss error" onClick={() => setError('')}>
+        <X size={15} />
+      </button>
+    </div>
+  )
   if (workspace)
     return (
-      <Workspace
-        editor={workspace.editor}
-        session={workspace.session}
-        onBack={() => void back()}
-        userControl={userControl}
-        local={!api}
-      />
+      <>
+        <Workspace
+          editor={workspace.editor}
+          session={workspace.session}
+          onBack={() => void back()}
+          userControl={userControl}
+          local={!api}
+        />
+        {errorNotice}
+        {busy && (
+          <div className="busy-indicator" role="status">
+            Saving model…
+          </div>
+        )}
+      </>
     )
   const filtered = projects.filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
   return (
@@ -383,14 +493,7 @@ function Client({
             </button>
           </div>
         </div>
-        {error && (
-          <div className="error-banner" role="alert">
-            <span>{error}</span>
-            <button aria-label="Dismiss error" onClick={() => setError('')}>
-              <X size={15} />
-            </button>
-          </div>
-        )}
+        {errorNotice}
         {loading ? (
           <div className="models-loading">
             <span className="spinner" />

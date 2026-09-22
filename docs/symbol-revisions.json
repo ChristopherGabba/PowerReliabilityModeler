@@ -1,6 +1,21 @@
 {
-  "method": "Built-in GPT Image Gen",
+  "method": "Original artwork: Built-in GPT Image Gen; current rendering: shared vector paths",
+  "uniform_strokes": {
+    "date": "2026-09-22",
+    "method": "Shared canvas and SVG geometry in src/core/symbols.ts",
+    "revision": "Use 1.4 canvas units for every electrical stroke, based on the outdoor breaker outline (21 source pixels at 82.8/1254 display scale). Preserve symbol topology and shortened disconnect spacing. Draw each symbol and its complete centered terminal leads together; remove raster artwork and generic lead overlays from rendering. Use the same geometry for the palette, inspector and sign-in example. Selected wires change color without changing width. Original PNGs remain as design references."
+  },
+  "disconnect_sizing": {
+    "date": "2026-09-22",
+    "method": "Catalog geometry; retains the existing generated disconnect artwork",
+    "revision": "Uniformly scale the diagram symbol to 75%, from 56x60 to 42x45. Reduce terminal offsets from +/-40 to +/-30 and inward leads from 12 to 9. Recognize former terminal coordinates when reopening or importing saved connector routes."
+  },
   "symbols": [
+    {
+      "id": "outdoor_mv_hv_breaker",
+      "revision": "2026-09-22: replace the curved breaker with a square and centered top and bottom leads",
+      "prompt": "Use case: infographic-diagram. Asset type: one electrical schematic icon for a GPU one-line editor. Generate a replacement outdoor circuit breaker symbol consisting of exactly ONE unfilled square outline and TWO straight vertical leads, all pure black uniform monoline strokes on a genuinely transparent background. Center a geometrically exact square at (512,512) on a 1024x1024 transparent canvas; square outer centerline corners at (352,352), (672,352), (672,672), (352,672). One straight vertical line starts at the TOP MIDDLE of the square (512,352) and extends upward to (512,150). A second straight vertical line starts at the BOTTOM MIDDLE (512,672) and extends downward to (512,874). The lines touch their respective square edges with seamless junctions. All strokes the same 22px width, crisp, solid black, with square corners. The square interior is empty and transparent. No line through the square interior. Nothing else: no circles, contacts, arcs, curved bridges, angled blades, hatching, dots, text, labels, shadows, gradients, border, grid, checkerboard or white backdrop. Symmetric around both axes. Preserve actual alpha transparency and generous transparent margins."
+    },
     {
       "id": "utility_source",
       "reference": "/Users/christophergabba/Downloads/utility_triangle_symbol.jpeg",

@@ -6,7 +6,13 @@ dist/
 .dev.vars
 *.tsbuildinfo
 test-results/
+playwright-report/
+coverage/
 .DS_Store
 
 dist-benchmark
 .clerk
+
+# Validation docs are source; screenshots and raw run reports are disposable.
+/docs/validation/*
+!/docs/validation/README.md

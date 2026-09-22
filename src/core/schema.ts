@@ -1,6 +1,6 @@
 import { z } from 'zod'
 import { CATALOG } from './catalog'
-import { endpointPosition, distance } from './geometry'
+import { endpointPosition, distance, routeConnector, worldPoint } from './geometry'
 import {
   EQUIPMENT_TYPES,
   uid,
@@ -137,6 +137,7 @@ export function validateDocument(input: unknown, complete = false): DocumentReco
       throw new Error('Only buses have a bus length')
   }
   for (const c of d.connectors) {
+    let shortenedDisconnect = false
     if (c.from.equipment_key === c.to.equipment_key)
       throw new Error(`Connector ${c.id} cannot connect equipment to itself`)
     for (const [ep, position] of [
@@ -163,8 +164,14 @@ export function validateDocument(input: unknown, complete = false): DocumentReco
           throw new Error(`Terminal ${e.id}.${ep.port_id} has more than one connector`)
         used.add(key)
       }
-      if (distance(endpointPosition(e, ep), position) > 0.01)
-        throw new Error(`Connector ${c.id} endpoint coordinates do not match its equipment`)
+      if (distance(endpointPosition(e, ep), position) > 0.01) {
+        // Earlier disconnects had terminals at +/-40. Accept only those exact
+        // former endpoints, then rebuild the derived route for the shorter icon.
+        const oldTerminal = worldPoint(e, { x: 0, y: ep.port_id === 'in' ? -40 : 40 })
+        if (e.equipment_type === 'disconnect_switch' && distance(oldTerminal, position) <= 0.01)
+          shortenedDisconnect = true
+        else throw new Error(`Connector ${c.id} endpoint coordinates do not match its equipment`)
+      }
     }
     for (let i = 1; i < c.points.length; i++) {
       const a = c.points[i - 1],
@@ -172,6 +179,7 @@ export function validateDocument(input: unknown, complete = false): DocumentReco
       if (Math.abs(a.x - b.x) > 0.01 && Math.abs(a.y - b.y) > 0.01)
         throw new Error(`Connector ${c.id} must have orthogonal segments`)
     }
+    if (shortenedDisconnect) c.points = routeConnector(c, equipment)
   }
   for (const f of d.failovers) {
     if (!equipment.has(f.equipment_key)) throw new Error('Failover references missing equipment')
@@ -281,8 +289,8 @@ export function importModel(input: unknown): DocumentRecord {
     })),
     groups: f.groups.map((g) => ({ id: g.id, equipment_keys: g.equipment_ids.map(key) })),
   }
-  validateDocument(d, true)
-  const expected = exportModel(d)
+  const validated = validateDocument(d, true)
+  const expected = exportModel(validated)
   const normalize = (r: ConnectionRef[]) =>
     JSON.stringify(
       [...r]
@@ -293,7 +301,7 @@ export function importModel(input: unknown): DocumentRecord {
   for (const equipment of f.equipment)
     if (normalize(equipment.connections) !== normalize(expectedById.get(equipment.id)!.connections))
       throw new Error(`Connection references disagree for ${equipment.id}`)
-  return d
+  return validated
 }
 export function applyPatch(document: DocumentRecord, patch: Patch): DocumentRecord {
   const p = patchSchema.parse(patch)

@@ -1,3 +1,4 @@
+import { EquipmentSymbol } from './EquipmentSymbol'
 import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from 'react'
 import {
   ArrowLeft,
@@ -366,7 +367,7 @@ export function Workspace({
                   aria-label={`Place ${CATALOG[type].name}`}
                   title={`${CATALOG[type].name} — drag onto canvas or click to place`}
                 >
-                  <img src={`/symbols/${type}.png`} alt="" draggable={false} />
+                  <EquipmentSymbol type={type} />
                   <span className="palette-tooltip">{CATALOG[type].short}</span>
                 </button>
               ))}

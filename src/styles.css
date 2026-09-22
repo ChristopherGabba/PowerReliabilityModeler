@@ -67,7 +67,8 @@ svg {
 input {
   min-width: 0;
 }
-button img {
+button img,
+.equipment-symbol {
   pointer-events: none;
 }
 a {
@@ -868,7 +869,7 @@ kbd {
 .palette-item:active {
   cursor: grabbing;
 }
-.palette-item img {
+.palette-item .equipment-symbol {
   height: 40px;
   width: 40px;
   object-fit: contain;
@@ -1105,7 +1106,7 @@ kbd {
   flex-shrink: 0;
   color: #7195b5;
 }
-.equipment-icon img {
+.equipment-icon .equipment-symbol {
   height: 45px;
   width: 45px;
   object-fit: contain;
@@ -1810,7 +1811,7 @@ kbd {
   .palette-item {
     width: 36px;
   }
-  .palette-item img {
+  .palette-item .equipment-symbol {
     height: 36px;
     width: 36px;
   }
@@ -1865,7 +1866,7 @@ kbd {
   .palette-item {
     width: 31px;
   }
-  .palette-item img {
+  .palette-item .equipment-symbol {
     height: 33px;
     width: 33px;
   }
@@ -1909,4 +1910,12 @@ kbd {
     animation-duration: 0.01ms !important;
     transition: none !important;
   }
+}
+
+.navigation-error {
+  position: fixed;
+  z-index: 80;
+  top: 70px;
+  left: 20px;
+  right: 20px;
 }

@@ -1,3 +1,5 @@
+import { EquipmentSymbolPaths } from './EquipmentSymbol'
+import { DIAGRAM_STROKE_WIDTH } from '../core/symbols'
 import { useState } from 'react'
 import { Download, FileJson2 } from 'lucide-react'
 import { CATALOG } from '../core/catalog'
@@ -72,7 +74,7 @@ export function SignInPreview() {
           viewBox="0 -15 720 545"
           aria-label="Two utility supplies, each feeding a transformer, main breaker, bus and load. A tie breaker connects the buses."
         >
-          <g fill="none" stroke="#788ca2" strokeWidth="1.5" strokeLinejoin="round">
+          <g fill="none" stroke="#788ca2" strokeWidth={DIAGRAM_STROKE_WIDTH} strokeLinejoin="round">
             {document.connectors.map((wire) => (
               <polyline key={wire.id} points={wire.points.map((p) => `${p.x},${p.y}`).join(' ')} />
             ))}
@@ -108,33 +110,9 @@ export function SignInPreview() {
                     height={catalog.height + 18}
                     rx="5"
                   />
-                  {isBus ? (
-                    <path
-                      d={`M ${-width / 2} 0 H ${width / 2}`}
-                      stroke={active ? '#0088ff' : '#273d55'}
-                      strokeWidth="5"
-                      strokeLinecap="round"
-                    />
-                  ) : (
-                    <>
-                      <image
-                        href={`/symbols/${item.equipment_type}.png`}
-                        x={-catalog.width * 0.69}
-                        y={-catalog.height * 0.69}
-                        width={catalog.width * 1.38}
-                        height={catalog.height * 1.38}
-                        preserveAspectRatio="none"
-                      />
-                      {catalog.ports.map((port) => (
-                        <path
-                          key={port.id}
-                          d={`M ${port.x} ${port.y} L ${port.x - port.dx * (port.leadLength ?? 12)} ${port.y - port.dy * (port.leadLength ?? 12)}`}
-                          stroke="#273d55"
-                          strokeWidth="1.5"
-                        />
-                      ))}
-                    </>
-                  )}
+                  <g color={active ? '#0088ff' : '#273d55'}>
+                    <EquipmentSymbolPaths type={item.equipment_type} busLength={item.bus_length} />
+                  </g>
                 </g>
                 {active &&
                   ports(item).map((port) => (
@@ -145,7 +123,7 @@ export function SignInPreview() {
                       r="3"
                       fill="white"
                       stroke="#0088ff"
-                      strokeWidth="1.5"
+                      strokeWidth={DIAGRAM_STROKE_WIDTH}
                     />
                   ))}
                 <text

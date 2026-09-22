@@ -1,8 +1,0 @@
-{
-  "passed": [
-    "single flight and edits during save",
-    "offline reload and idempotent retry",
-    "conflict produces separate recovery project",
-    "storage failure is actionable"
-  ]
-}

@@ -5,8 +5,7 @@ export type CatalogEntry = {
   description: string
   width: number
   height: number
-  // Optional inward lead length joins each terminal to its artwork (default 12).
-  ports: (Port & { leadLength?: number })[]
+  ports: Port[]
 }
 const terminal = [{ id: 'terminal', x: 0, y: 38, dx: 0, dy: 1 }]
 const pair = [
@@ -42,9 +41,12 @@ export const CATALOG: Record<EquipmentType, CatalogEntry> = {
     name: 'Disconnect switch',
     short: 'Disconnect',
     description: 'Two-terminal disconnect switch',
-    width: 56,
-    height: 60,
-    ports: pair,
+    width: 42,
+    height: 45,
+    ports: [
+      { ...pair[0], y: -30 },
+      { ...pair[1], y: 30 },
+    ],
   },
   oil_filled_transformer: {
     name: 'Oil-filled transformer',
@@ -53,8 +55,8 @@ export const CATALOG: Record<EquipmentType, CatalogEntry> = {
     width: 72,
     height: 80,
     ports: [
-      { ...pair[0], id: 'primary', y: -48, leadLength: 17 },
-      { ...pair[1], id: 'secondary', y: 48, leadLength: 14.5 },
+      { ...pair[0], id: 'primary', y: -48 },
+      { ...pair[1], id: 'secondary', y: 48 },
     ],
   },
   dry_type_transformer: {
@@ -64,8 +66,8 @@ export const CATALOG: Record<EquipmentType, CatalogEntry> = {
     width: 72,
     height: 80,
     ports: [
-      { ...pair[0], id: 'primary', y: -48, leadLength: 17 },
-      { ...pair[1], id: 'secondary', y: 48, leadLength: 14.5 },
+      { ...pair[0], id: 'primary', y: -48 },
+      { ...pair[1], id: 'secondary', y: 48 },
     ],
   },
   load: {

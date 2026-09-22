@@ -13,6 +13,7 @@ import {
   routeConnector,
   segmentDistance,
   SpatialIndex,
+  translateConnector,
   worldPoint,
 } from './geometry'
 import { validateDocument } from './schema'
@@ -680,12 +681,12 @@ export class Editor {
       }
       for (const id of affected) {
         const c = this.connectors.get(id)!
-        const internal = keys.has(c.from.equipment_key) && keys.has(c.to.equipment_key)
-        const next = {
-          ...c,
-          bends: internal ? c.bends.map((p) => ({ x: p.x + dx, y: p.y + dy })) : c.bends,
-        }
-        this.putConnector(id, { ...next, points: routeConnector(next, this.equipment) })
+        this.putConnector(
+          id,
+          translateConnector(c, this.equipment, {
+            get: (key) => (keys.has(key) ? { x: dx, y: dy } : undefined),
+          }),
+        )
       }
       if (connect) this.autoConnect(keys)
     })

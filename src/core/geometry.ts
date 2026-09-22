@@ -24,10 +24,13 @@ export function ports(e: EquipmentRecord): Port[] {
 export function endpointPosition(
   e: EquipmentRecord,
   ep: Pick<EndpointRecord, 'port_id' | 'tap_offset'>,
+  toward?: Point,
 ): Port {
   if (e.equipment_type === 'bus') {
     const p = worldPoint(e, { x: ep.tap_offset ?? 0, y: 0 })
-    const d = rotatePoint({ x: 0, y: 1 }, e.rotation)
+    // A bar receives wires on either face, including when the bus is rotated.
+    const side = toward && localPoint(e, toward).y < 0 ? -1 : 1
+    const d = rotatePoint({ x: 0, y: side }, e.rotation)
     return { ...p, id: 'bar', dx: d.x, dy: d.y }
   }
   const p = ports(e).find((p) => p.id === ep.port_id)
@@ -96,13 +99,14 @@ export function simplify(points: Point[]): Point[] {
 }
 export function routeConnector(
   c: ConnectorRecord,
-  equipment: Map<string, EquipmentRecord>,
+  equipment: Pick<ReadonlyMap<string, EquipmentRecord>, 'get'>,
 ): Point[] {
   const a = equipment.get(c.from.equipment_key),
     b = equipment.get(c.to.equipment_key)
   if (!a || !b) return []
-  const start = endpointPosition(a, c.from),
-    end = endpointPosition(b, c.to)
+  let start = endpointPosition(a, c.from)
+  const end = endpointPosition(b, c.to, start)
+  if (a.equipment_type === 'bus') start = endpointPosition(a, c.from, end)
   if (c.routing === 'manual' && c.bends.length) {
     const result: Point[] = [{ x: start.x, y: start.y }]
     for (const p of [...c.bends, end]) {
@@ -135,6 +139,43 @@ export function routeConnector(
     ]
   } else middle = [start.dx === 0 ? { x: s.x, y: t.y } : { x: t.x, y: s.y }]
   return simplify([{ x: start.x, y: start.y }, s, ...middle, t, { x: end.x, y: end.y }])
+}
+
+// Use the same translation for live dragging and committed moves, so the tap
+// does not jump on release. Preserve a deliberately offset tap and clamp it to
+// the bar; moving the bus alone keeps its existing local attachment points.
+export function translateConnector(
+  c: ConnectorRecord,
+  equipment: Pick<ReadonlyMap<string, EquipmentRecord>, 'get'>,
+  translations: Pick<ReadonlyMap<string, Point>, 'get'>,
+): ConnectorRecord {
+  const from = translations.get(c.from.equipment_key)
+  const to = translations.get(c.to.equipment_key)
+  const slide = (ep: EndpointRecord, other: EndpointRecord, delta?: Point, otherDelta?: Point) => {
+    const bus = equipment.get(ep.equipment_key)
+    const device = equipment.get(other.equipment_key)
+    if (bus?.equipment_type !== 'bus' || !otherDelta || !device || device.equipment_type === 'bus')
+      return ep
+    const along = rotatePoint(
+      { x: otherDelta.x - (delta?.x ?? 0), y: otherDelta.y - (delta?.y ?? 0) },
+      -bus.rotation,
+    ).x
+    const half = (bus.bus_length ?? 200) / 2
+    const clamp = (offset: number) => Math.max(-half, Math.min(half, offset))
+    const position = localPoint(bus, endpointPosition(device, other)).x
+    // Ignore travel beyond a bar end so dragging back resumes at the device,
+    // instead of carrying accumulated overshoot to the opposite end.
+    const travel = clamp(position) - clamp(position - along)
+    return { ...ep, tap_offset: clamp((ep.tap_offset ?? 0) + travel) }
+  }
+  const together = from && to && from.x === to.x && from.y === to.y
+  const next = {
+    ...c,
+    from: slide(c.from, c.to, from, to),
+    to: slide(c.to, c.from, to, from),
+    bends: together ? c.bends.map((p) => ({ x: p.x + from.x, y: p.y + from.y })) : c.bends,
+  }
+  return { ...next, points: routeConnector(next, equipment) }
 }
 
 // Uniform spatial buckets bound ordinary viewport queries. Very long wires/buses are

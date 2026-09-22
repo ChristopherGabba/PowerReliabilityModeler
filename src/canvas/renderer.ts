@@ -4,7 +4,7 @@ import { equipmentLabel } from '../core/labels'
 import { Editor } from '../core/editor'
 import { drawEquipmentSymbol } from './equipmentSymbol'
 import { DIAGRAM_STROKE_WIDTH } from '../core/symbols'
-import { endpointPosition, routeConnector, worldPoint } from '../core/geometry'
+import { endpointPosition, routeConnector, translateConnector, worldPoint } from '../core/geometry'
 import type { ConnectorRecord, EquipmentRecord, Point } from '../core/types'
 
 type NodeView = {
@@ -394,7 +394,13 @@ export class CanvasRenderer {
         const view = this.edges.get(id) ?? this.edge(c)
         this.drawPath(
           view.graphics,
-          routeConnector(c, { get } as Map<string, EquipmentRecord>),
+          translateConnector(
+            c,
+            { get },
+            {
+              get: (key) => (preview.keys.has(key) ? { x: preview.dx, y: preview.dy } : undefined),
+            },
+          ).points,
           this.connectorColor(c),
         )
         view.record = null

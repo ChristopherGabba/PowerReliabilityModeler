@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { CanvasController } from '../src/canvas/controller'
 import { Editor } from '../src/core/editor'
-import { endpointPosition, worldPoint } from '../src/core/geometry'
+import { endpointPosition, localPoint, worldPoint } from '../src/core/geometry'
 import type { Point } from '../src/core/types'
 
 describe('Bus pointer interactions', () => {
@@ -49,6 +49,58 @@ describe('Bus pointer interactions', () => {
     pointer('pointermove', to)
     pointer('pointerup', to)
   }
+
+  it.each([0, 90, 180, 270].flatMap((rotation) => [-1, 1].map((side) => [rotation, side])))(
+    'lands on a bus rotated %i° from side %i without crossing the bar',
+    (rotation, side) => {
+      const bus = editor.add('bus', { x: 0, y: 0 })
+      for (let angle = 0; angle < rotation; angle += 90) editor.rotate()
+      const bar = editor.equipment.get(bus)!
+      const device = editor.add('utility_source', worldPoint(bar, { x: -50, y: side * 70 }))
+      for (let angle = 0; angle < (rotation + (side === 1 ? 180 : 0)) % 360; angle += 90)
+        editor.rotate()
+      drag(
+        endpointPosition(editor.equipment.get(device)!, { port_id: 'terminal' }),
+        worldPoint(bar, { x: 30, y: 0 }),
+      )
+      expect(editor.connectors.size).toBe(1)
+      const wire = [...editor.connectors.values()].at(-1)!
+      expect(wire.to).toMatchObject({ equipment_key: bus, tap_offset: 30 })
+      const path = wire.points.map((point) => localPoint(bar, point))
+      expect(path.at(-1)!.x).toBeCloseTo(30)
+      expect(path.at(-1)!.y).toBeCloseTo(0)
+      expect(path.slice(0, -1).filter((point) => side * point.y <= 0)).toEqual([])
+    },
+  )
+
+  it.each([0, 90, 180, 270])(
+    'slides the connection along a bus rotated %i° when its device is dragged',
+    (rotation) => {
+      const bus = editor.add('bus', { x: 0, y: 0 })
+      for (let angle = 0; angle < rotation; angle += 90) editor.rotate()
+      const bar = editor.equipment.get(bus)!
+      const origin = worldPoint(bar, { x: -50, y: -200 })
+      const device = editor.add('utility_source', origin)
+      for (let angle = 0; angle < rotation; angle += 90) editor.rotate()
+      drag(
+        endpointPosition(editor.equipment.get(device)!, { port_id: 'terminal' }),
+        worldPoint(bar, { x: -50, y: 0 }),
+      )
+      const before = editor.snapshot()
+      drag(origin, worldPoint(bar, { x: 40, y: -200 }))
+      const wire = [...editor.connectors.values()][0]
+      expect(wire.to.tap_offset).toBe(40)
+      expect(wire.points).toEqual([
+        worldPoint(bar, { x: 40, y: -162 }),
+        worldPoint(bar, { x: 40, y: 0 }),
+      ])
+      const after = editor.snapshot()
+      editor.undo()
+      expect(editor.snapshot()).toEqual(before)
+      editor.redo()
+      expect(editor.snapshot()).toEqual(after)
+    },
+  )
 
   it.each([0, 90, 180, 270])(
     'moves a newly placed bus rotated %i° instead of starting a wire',

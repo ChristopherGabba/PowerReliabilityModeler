@@ -1,7 +1,7 @@
 import {
-  DIAGRAM_STROKE_WIDTH,
   equipmentSymbolFill,
   equipmentSymbolPath,
+  equipmentSymbolStrokeWidth,
   equipmentSymbolViewBox,
 } from '../core/symbols'
 import type { EquipmentType } from '../core/types'
@@ -22,7 +22,7 @@ export function EquipmentSymbolPaths({
         d={equipmentSymbolPath(type, busLength)}
         fill="none"
         stroke="currentColor"
-        strokeWidth={DIAGRAM_STROKE_WIDTH}
+        strokeWidth={equipmentSymbolStrokeWidth(type)}
         strokeLinecap="butt"
         strokeLinejoin="round"
         vectorEffect={icon ? 'non-scaling-stroke' : undefined}

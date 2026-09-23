@@ -62,7 +62,7 @@ export type Preview =
   | { kind: 'bus'; key: string; equipment: EquipmentRecord }
   | { kind: 'bend'; id: string; bends: Point[] }
   | null
-export type FailoverPick = { owner: string; kind: 'triggers' | 'parent'; keys: Set<string> }
+export type FailoverPick = { owner: string; kind: 'triggers' | 'parent'; keys: ReadonlySet<string> }
 
 export class Editor {
   equipment = new Map<string, EquipmentRecord>()
@@ -86,9 +86,12 @@ export class Editor {
   readonly labelIndex = new SpatialIndex()
   private labelSizes = new Map<string, { width: number; height: number; details: boolean }>()
   private labelListeners = new Set<(offsets: LabelOffsets) => void>()
-  private triggerSelection: Set<string> | null = null
-  private triggerDefinitions: FailoverRecord[] | null = null
+  private failoverSelection: Set<string> | null = null
+  private selectedFailoverDefinitions: FailoverRecord[] | null = null
   private selectedTriggers = new Set<string>()
+  private selectedTargets = new Set<string>()
+  private linkedFailoverDefinitions: FailoverRecord[] | null = null
+  private linkedFailoverOwners = new Set<string>()
   readonly equipmentIndex = new SpatialIndex()
   readonly connectorIndex = new SpatialIndex()
   readonly adjacency = new Map<string, Set<string>>()
@@ -140,6 +143,17 @@ export class Editor {
     for (const fn of this.frameListeners) fn(immediate)
   }
   notify() {
+    if (this.failoverPick) {
+      const pick = this.failoverPick
+      if (!this.equipment.has(pick.owner) || this.inspector !== pick.owner) this.failoverPick = null
+      else {
+        // Picking reflects the saved definition, including sidebar removals and undo/redo.
+        const f = this.failovers.find((f) => f.equipment_key === pick.owner)
+        pick.keys = new Set(
+          pick.kind === 'triggers' ? (f?.trigger_keys ?? []) : f?.parent_key ? [f.parent_key] : [],
+        )
+      }
+    }
     // Once opened, the inspector follows selection changes from clicks, paste,
     // placement, or history. Empty selection keeps the panel in place.
     if (
@@ -174,17 +188,42 @@ export class Editor {
       viewport: this.viewport,
     }
   }
-  isSelectedTrigger(key: string): boolean {
-    if (this.triggerSelection !== this.selection || this.triggerDefinitions !== this.failovers) {
-      this.selectedTriggers = new Set(
-        this.failovers
-          .filter((f) => this.selection.has(f.equipment_key))
-          .flatMap((f) => f.trigger_keys),
-      )
-      this.triggerSelection = this.selection
-      this.triggerDefinitions = this.failovers
+  private refreshSelectedFailovers() {
+    if (
+      this.failoverSelection !== this.selection ||
+      this.selectedFailoverDefinitions !== this.failovers
+    ) {
+      this.selectedTriggers = new Set()
+      this.selectedTargets = new Set()
+      for (const f of this.failovers) {
+        if (!this.selection.has(f.equipment_key)) continue
+        for (const key of f.trigger_keys) this.selectedTriggers.add(key)
+        if (f.parent_key) this.selectedTargets.add(f.parent_key)
+      }
+      this.failoverSelection = this.selection
+      this.selectedFailoverDefinitions = this.failovers
     }
+  }
+  isSelectedTrigger(key: string): boolean {
+    this.refreshSelectedFailovers()
     return this.selectedTriggers.has(key)
+  }
+  isSelectedTarget(key: string): boolean {
+    this.refreshSelectedFailovers()
+    return this.selectedTargets.has(key)
+  }
+  hasFailoverLinks(key: string): boolean {
+    // Rendering asks for every visible device. Rebuild only when links change,
+    // including history replay, rather than scanning all failovers per symbol.
+    if (this.linkedFailoverDefinitions !== this.failovers) {
+      this.linkedFailoverOwners = new Set(
+        this.failovers
+          .filter((f) => f.trigger_keys.length > 0 || f.parent_key !== null)
+          .map((f) => f.equipment_key),
+      )
+      this.linkedFailoverDefinitions = this.failovers
+    }
+    return this.linkedFailoverOwners.has(key)
   }
   onLabelChange(fn: (offsets: LabelOffsets) => void) {
     this.labelListeners.add(fn)
@@ -985,44 +1024,47 @@ export class Editor {
     })
   }
   removeFailover(owner: string) {
+    if (this.failoverPick?.owner === owner) this.failoverPick = null
     this.transaction('Remove failover', () => {
       this.failovers = this.failovers.filter((f) => f.equipment_key !== owner)
     })
   }
   startFailoverPick(owner: string, kind: 'triggers' | 'parent') {
-    const f = this.failovers.find((f) => f.equipment_key === owner)
-    this.failoverPick = {
-      owner,
-      kind,
-      keys: new Set(
-        kind === 'triggers' ? (f?.trigger_keys ?? []) : f?.parent_key ? [f.parent_key] : [],
-      ),
-    }
+    if (!this.equipment.has(owner)) return
+    this.cancel()
+    this.inspector = owner
+    this.selection = new Set([owner])
+    this.selectedConnector = null
+    this.failoverPick = { owner, kind, keys: new Set() }
     this.tool = 'select'
+    this.notify()
+  }
+  stopFailoverPick() {
+    this.failoverPick = null
     this.notify()
   }
   pickFailover(key: string) {
     const pick = this.failoverPick
-    if (!pick) return
+    if (!pick || !this.equipment.has(key)) return
+    const f = this.failovers.find((f) => f.equipment_key === pick.owner)
     if (pick.kind === 'parent') {
       if (key === pick.owner) return
-      pick.keys = new Set([key])
+      this.setFailover(pick.owner, f?.trigger_keys ?? [], key)
+      this.stopFailoverPick()
     } else {
-      if (pick.keys.has(key)) pick.keys.delete(key)
-      else pick.keys.add(key)
+      const keys = new Set(f?.trigger_keys)
+      if (keys.has(key)) keys.delete(key)
+      else keys.add(key)
+      this.setFailover(pick.owner, [...keys], f?.parent_key ?? null)
     }
-    this.notify()
   }
-  applyFailoverPick() {
+  addFailoverTriggers(keys: Iterable<string>) {
     const pick = this.failoverPick
-    if (!pick) return
+    if (!pick || pick.kind !== 'triggers') return
     const f = this.failovers.find((f) => f.equipment_key === pick.owner)
-    this.setFailover(
-      pick.owner,
-      pick.kind === 'triggers' ? [...pick.keys] : (f?.trigger_keys ?? []),
-      pick.kind === 'parent' ? ([...pick.keys][0] ?? null) : (f?.parent_key ?? null),
-    )
-    this.failoverPick = null
-    this.notify()
+    const triggers = new Set(f?.trigger_keys)
+    for (const key of keys) if (this.equipment.has(key)) triggers.add(key)
+    if (triggers.size === (f?.trigger_keys.length ?? 0)) return
+    this.setFailover(pick.owner, [...triggers], f?.parent_key ?? null)
   }
 }

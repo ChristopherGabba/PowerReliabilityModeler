@@ -5,6 +5,10 @@ import type { EquipmentType, Point } from './types'
 // canvas units: resizing a symbol's footprint must never rescale its stroke.
 export const DIAGRAM_STROKE_WIDTH = 1.4
 
+export function equipmentSymbolStrokeWidth(type: EquipmentType): number {
+  return type === 'bus' ? DIAGRAM_STROKE_WIDTH * 2 : DIAGRAM_STROKE_WIDTH
+}
+
 const circle = (x: number, y: number, radius: number) =>
   `M ${x} ${y - radius} a ${radius} ${radius} 0 1 1 0 ${radius * 2} a ${radius} ${radius} 0 1 1 0 ${-radius * 2} Z`
 

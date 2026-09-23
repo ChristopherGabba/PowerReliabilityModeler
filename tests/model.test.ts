@@ -10,6 +10,7 @@ function network() {
   const a = e.add('utility_source', { x: 0, y: 0 }),
     b = e.add('indoor_drawout_breaker', { x: 0, y: 180 }),
     bus = e.add('bus', { x: 0, y: 350 })
+  for (const key of [a, b, bus]) e.update(key, { kv_rating: 13.8, amp_rating: 1200 })
   e.connect({ equipment_key: a, port_id: 'terminal' }, { equipment_key: b, port_id: 'in' })
   e.connect(
     { equipment_key: b, port_id: 'out' },
@@ -18,12 +19,14 @@ function network() {
   return { e, a, b, bus }
 }
 describe('Portable connected model', () => {
-  it('round trips all equipment, paths, groups, and failovers without leaking internal keys', () => {
+  it('round trips equipment, paths, and failovers while keeping groups private without leaking internal keys', () => {
     const original = exampleDocument()
     const e = new Editor(original)
     e.select(original.equipment.slice(0, 3).map((v) => v.key))
     e.group()
     const exported = exportModel(e.snapshot())
+    expect(exported).not.toHaveProperty('groups')
+    expect(e.snapshot().groups).toHaveLength(1)
     expect(exported.equipment.find((e) => e.id === 'utility_north')!.x).toBe(-260)
     expect(exported.equipment.find((e) => e.id === 'utility_north')!.connections).toHaveLength(1)
     expect(JSON.stringify(exported)).not.toContain('equipment_key')
@@ -62,6 +65,7 @@ describe('Portable connected model', () => {
   it('preserves rings without flattening them into a hierarchy', () => {
     const e = new Editor()
     const buses = [0, 1, 2].map((i) => e.add('bus', { x: i * 400, y: (i % 2) * 250 }))
+    for (const key of buses) e.update(key, { kv_rating: 13.8, amp_rating: 1200 })
     for (let i = 0; i < 3; i++)
       e.connect(
         { equipment_key: buses[i], port_id: 'bar', tap_offset: 0 },
@@ -258,6 +262,8 @@ describe('Source connectivity', () => {
     const buses = [0, 1, 2].map((i) => e.add('bus', { x: i * 400, y: 200 }))
     const utility = e.add('utility_source', { x: 0, y: 0 })
     const generator = e.add('generator', { x: 800, y: 0 })
+    for (const key of [...buses, utility, generator])
+      e.update(key, { kv_rating: 13.8, amp_rating: 1200 })
     for (let i = 0; i < buses.length; i++)
       e.connect(
         { equipment_key: buses[i], port_id: 'bar', tap_offset: 40 },

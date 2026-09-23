@@ -45,12 +45,16 @@
           })
           r.render()
           const checks = CATALOG[item.equipment_type].ports.flatMap((port) => {
+            // The selected output's terminal ring covers this entire short lead.
+            if (item.equipment_type === 'ring_main_unit' && port.dy === 1 && selected) return []
             const depths =
               item.equipment_type === 'disconnect_switch'
-                ? [5, 8, 12, 16]
+                ? [6, 8, 12, 15]
                 : item.equipment_type === 'indoor_drawout_breaker'
                   ? [13]
-                  : [4.5]
+                  : item.equipment_type === 'ring_main_unit'
+                    ? [port.dy === 1 ? 3 : 8]
+                    : [6]
             return depths.map((depth) => ({
               point: { x: port.x - port.dx * depth, y: port.y - port.dy * depth },
               direction: { x: port.dx, y: port.dy },
@@ -58,17 +62,20 @@
           })
           if (item.equipment_type === 'outdoor_mv_hv_breaker')
             checks.push({ point: { x: -11.5, y: 0 }, direction: { x: 0, y: 1 } })
+          if (item.equipment_type === 'ring_main_unit')
+            checks.push({ point: { x: -45, y: -25 }, direction: { x: 0, y: 1 } })
           if (item.equipment_type === 'bus')
             checks.push({ point: { x: 0, y: 0 }, direction: { x: 1, y: 0 } })
           for (const check of checks) {
             const point = worldPoint(item, check.point)
             const vector = worldPoint({ ...item, x: 0, y: 0 }, check.direction)
             const measured = widthAt(point, vector)
-            const error = Math.abs(measured - 1.4)
+            const expected = item.equipment_type === 'bus' ? 2.8 : 1.4
+            const error = Math.abs(measured - expected)
             maximumError = Math.max(maximumError, error)
             assert(
               error <= 0.4,
-              `${item.equipment_type} rotation=${rotation} zoom=${zoom} selected=${selected}: line is ${measured.toFixed(2)}, expected 1.4 at ${JSON.stringify(check.point)}`,
+              `${item.equipment_type} rotation=${rotation} zoom=${zoom} selected=${selected}: line is ${measured.toFixed(2)}, expected ${expected} at ${JSON.stringify(check.point)}`,
             )
             samples++
           }

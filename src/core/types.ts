@@ -44,7 +44,6 @@ export type Failover = {
   failover_trigger_ids: string[]
   failover_parent: string | null
 }
-export type VisualGroup = { id: string; equipment_ids: string[] }
 export type ModelFile = {
   schema_version: 1
   model_name: string
@@ -53,7 +52,6 @@ export type ModelFile = {
   equipment: Equipment[]
   connectors: Connector[]
   failovers: Failover[]
-  groups: VisualGroup[]
   viewport: Viewport
 }
 // Stable keys are private to the editor and cloud document. Public IDs remain human editable.

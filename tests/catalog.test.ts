@@ -42,6 +42,8 @@ describe.each(['indoor_drawout_breaker', 'outdoor_mv_hv_breaker'] as const)('%s'
     expect(e.connect(from, to)).not.toBeNull()
     expect(e.connect(from, to)).toBeNull()
     const generator = e.add('generator', { x: 300, y: 0 })
+    for (const item of [source, key, load, generator])
+      e.update(item, { kv_rating: 13.8, amp_rating: 1200 })
     e.setFailover(key, [source], generator)
     e.select([key, load])
     e.group()
@@ -56,7 +58,8 @@ it.each(['hv_breaker', 'outdoor_breaker', 'outdoor_mv_breaker', 'unknown_breaker
   'rejects unsupported equipment type %s in imports, documents and patches',
   (equipment_type) => {
     const e = new Editor()
-    e.add('indoor_drawout_breaker', { x: 0, y: 0 })
+    const key = e.add('indoor_drawout_breaker', { x: 0, y: 0 })
+    e.update(key, { kv_rating: 13.8, amp_rating: 1200 })
     const document = e.snapshot()
     const model = exportModel(document)
     expect(() =>
@@ -90,6 +93,7 @@ describe('Disconnect switch', () => {
     const e = new Editor()
     const first = e.add('outdoor_mv_hv_breaker', { x: 0, y: 0 })
     const second = e.add('outdoor_mv_hv_breaker', { x: 200, y: 200 })
+    for (const key of [first, second]) e.update(key, { kv_rating: 13.8, amp_rating: 1200 })
     for (let angle = 0; angle < rotation; angle += 90) {
       e.rotate(new Set([first]))
       e.rotate(new Set([second]))
@@ -147,6 +151,7 @@ describe('Disconnect switch', () => {
     expect(e.connect(from, to)).not.toBeNull()
     expect(e.connect(from, to)).toBeNull()
     expect(e.connect({ equipment_key: source, port_id: 'terminal' }, from)).toBeNull()
+    for (const item of [source, key, load]) e.update(item, { kv_rating: 13.8, amp_rating: 1200 })
     e.rotate(new Set([key]))
     expect(endpointPosition(e.equipment.get(key)!, { port_id: 'in' })).toMatchObject({
       x: 30,
@@ -168,6 +173,7 @@ describe('Disconnect switch', () => {
     const key = e.add('disconnect_switch', { x: 0, y: 0 })
     const load = e.add('load', { x: 0, y: 200 })
     e.connect({ equipment_key: key, port_id: 'out' }, { equipment_key: load, port_id: 'terminal' })
+    e.update(load, { kv_rating: 34.5, amp_rating: 600 })
     e.update(key, { kv_rating: 34.5, amp_rating: 600, derating_multiplier: 0.95 })
     e.select([key, load])
     e.group()

@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { CATALOG } from './catalog'
+import { exportIssues } from './exportChecks'
 import { endpointPosition, distance, routeConnector, worldPoint } from './geometry'
 import {
   EQUIPMENT_TYPES,
@@ -62,7 +63,8 @@ const publicSchema = z
         .object({ equipment_id: id, failover_trigger_ids: z.array(id).min(1), failover_parent: id })
         .strict(),
     ),
-    groups: z.array(z.object({ id, equipment_ids: z.array(id).min(2) }).strict()),
+    // Accept groups from older downloads, but keep them private in new exports.
+    groups: z.array(z.object({ id, equipment_ids: z.array(id).min(2) }).strict()).optional(),
     viewport,
   })
   .strict()
@@ -205,6 +207,14 @@ export function validateDocument(input: unknown, complete = false): DocumentReco
 }
 export function exportModel(input: DocumentRecord): ModelFile {
   const d = validateDocument(input, true)
+  const issues = exportIssues(d)
+  if (issues.length)
+    throw new Error(
+      `Cannot export: ${issues.map((issue) => `${issue.id}: ${issue.message}`).join('; ')}`,
+    )
+  return serializeModel(d)
+}
+function serializeModel(d: DocumentRecord): ModelFile {
   d.equipment.sort((a, b) => a.id.localeCompare(b.id))
   d.connectors.sort((a, b) => a.id.localeCompare(b.id))
   const ids = new Map(d.equipment.map((e) => [e.key, e.id]))
@@ -247,15 +257,11 @@ export function exportModel(input: DocumentRecord): ModelFile {
       failover_trigger_ids: f.trigger_keys.map((k) => ids.get(k)!),
       failover_parent: ids.get(f.parent_key!)!,
     })),
-    groups: d.groups.map((g) => ({
-      id: g.id,
-      equipment_ids: g.equipment_keys.map((k) => ids.get(k)!),
-    })),
     viewport: d.viewport,
   }
 }
 export function importModel(input: unknown): DocumentRecord {
-  const f = publicSchema.parse(input) as ModelFile
+  const f = publicSchema.parse(input)
   unique(
     f.equipment.map((e) => e.id),
     'equipment ID',
@@ -287,10 +293,11 @@ export function importModel(input: unknown): DocumentRecord {
       trigger_keys: v.failover_trigger_ids.map(key),
       parent_key: v.failover_parent ? key(v.failover_parent) : null,
     })),
-    groups: f.groups.map((g) => ({ id: g.id, equipment_keys: g.equipment_ids.map(key) })),
+    groups: (f.groups ?? []).map((g) => ({ id: g.id, equipment_keys: g.equipment_ids.map(key) })),
   }
   const validated = validateDocument(d, true)
-  const expected = exportModel(validated)
+  // Older models with unfinished ratings can still be imported and corrected.
+  const expected = serializeModel(validated)
   const normalize = (r: ConnectionRef[]) =>
     JSON.stringify(
       [...r]

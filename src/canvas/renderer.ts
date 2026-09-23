@@ -4,7 +4,13 @@ import { equipmentLabel } from '../core/labels'
 import { Editor } from '../core/editor'
 import { drawEquipmentSymbol } from './equipmentSymbol'
 import { DIAGRAM_STROKE_WIDTH } from '../core/symbols'
-import { endpointPosition, routeConnector, translateConnector, worldPoint } from '../core/geometry'
+import {
+  endpointPosition,
+  equipmentBounds,
+  routeConnector,
+  translateConnector,
+  worldPoint,
+} from '../core/geometry'
 import type { ConnectorRecord, EquipmentRecord, Point } from '../core/types'
 
 type NodeView = {
@@ -12,6 +18,7 @@ type NodeView = {
   body: Container
   lines: Graphics
   label: BitmapText
+  targetMarker: Graphics | null
   labelRecord: EquipmentRecord | null
   labelDetails: boolean
   record: EquipmentRecord | null
@@ -19,6 +26,8 @@ type NodeView = {
 }
 type EdgeView = { graphics: Graphics; record: ConnectorRecord | null; color: number }
 const blue = 0x0088ff,
+  pink = 0xec4899,
+  purple = 0x7c3aed,
   ink = 0x172334,
   disconnected = 0xb1bbc7
 
@@ -133,6 +142,7 @@ export class CanvasRenderer {
       body,
       lines,
       label,
+      targetMarker: null,
       labelRecord: null,
       labelDetails: false,
       record: null,
@@ -171,9 +181,11 @@ export class CanvasRenderer {
     const selected = this.editor.selection.has(e.key)
     const connected = this.editor.isSourceConnected(e.key)
     const trigger = this.editor.isSelectedTrigger(e.key)
+    const target = this.editor.isSelectedTarget(e.key)
+    const hasFailover = this.editor.hasFailoverLinks(e.key)
     const terminals =
       (selected && this.editor.selection.size <= 50) || this.editor.hover === e.key || !!pick
-    const state = `${selected}:${connected}:${trigger}:${terminals}:${pick?.keys.has(e.key)}:${pick?.owner === e.key}`
+    const state = `${selected}:${connected}:${trigger}:${target}:${hasFailover}:${terminals}:${pick?.keys.has(e.key)}:${pick?.owner === e.key}`
     if (v.record === e && v.state === state && !force) {
       v.label.visible = this.editor.viewport.zoom > 0.38
       return
@@ -199,15 +211,19 @@ export class CanvasRenderer {
     const c = CATALOG[e.equipment_type]
     const color = pick?.keys.has(e.key)
       ? 0x16a085
-      : pick?.owner === e.key
-        ? 0x9b65d8
-        : selected
-          ? blue
-          : trigger
-            ? 0xe88724
-            : connected
-              ? ink
-              : disconnected
+      : hasFailover
+        ? pink
+        : pick?.owner === e.key
+          ? 0x9b65d8
+          : selected
+            ? blue
+            : trigger
+              ? 0xe88724
+              : target
+                ? purple
+                : connected
+                  ? ink
+                  : disconnected
     v.lines.clear()
     drawEquipmentSymbol(v.lines, e.equipment_type, color, e.bus_length)
     if (terminals) {
@@ -218,7 +234,27 @@ export class CanvasRenderer {
             .fill(0xffffff)
             .stroke({ width: DIAGRAM_STROKE_WIDTH, color })
     }
-    v.label.style.fill = selected || trigger || pick ? color : connected ? 0x526074 : 0x9aa8b7
+    // Keep existing owner/trigger/selection colors when roles overlap, while
+    // still identifying the target with a purple marker beside its symbol.
+    const markTarget = target && color !== purple
+    if (markTarget) {
+      if (!v.targetMarker) {
+        v.targetMarker = new Graphics()
+        v.root.addChild(v.targetMarker)
+      }
+      const bounds = equipmentBounds(e)
+      v.targetMarker
+        .clear()
+        .circle(0, 0, 5)
+        .fill(0xffffff)
+        .stroke({ color: purple, width: 1.8 })
+        .circle(0, 0, 2)
+        .fill(purple)
+      v.targetMarker.position.set(bounds.minX - e.x - 10, bounds.minY - e.y - 10)
+    }
+    if (v.targetMarker) v.targetMarker.visible = markTarget
+    v.label.style.fill =
+      selected || trigger || target || hasFailover || pick ? color : connected ? 0x526074 : 0x9aa8b7
     v.label.visible = this.editor.viewport.zoom > 0.38
   }
   private node(e: EquipmentRecord) {

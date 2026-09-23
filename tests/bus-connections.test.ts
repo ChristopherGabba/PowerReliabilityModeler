@@ -6,6 +6,7 @@ function fixture(reverse = false, tap = -50) {
   const editor = new Editor()
   const bus = editor.add('bus', { x: 0, y: 0 })
   const device = editor.add('utility_source', { x: -50, y: -200 })
+  for (const key of [bus, device]) editor.update(key, { kv_rating: 13.8, amp_rating: 1200 })
   const terminal = { equipment_key: device, port_id: 'terminal' }
   const bar = { equipment_key: bus, port_id: 'bar', tap_offset: tap }
   const id = editor.connect(reverse ? bar : terminal, reverse ? terminal : bar)!

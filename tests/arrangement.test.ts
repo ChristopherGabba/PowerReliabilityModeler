@@ -153,6 +153,7 @@ describe('Selection arrangement', () => {
       { x: 600, y: 255 },
       { x: 600, y: 364 },
     ])
+    e.update(bus, { kv_rating: 13.8, amp_rating: 1200 })
     e.update(load, { kv_rating: 13.8, amp_rating: 1200, derating_multiplier: 0.99 })
     e.select([bus, load])
     const before = e.snapshot(),

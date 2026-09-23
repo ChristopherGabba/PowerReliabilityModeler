@@ -24,7 +24,7 @@ async function start() {
     { equipment_key: source, port_id: 'terminal' },
     { equipment_key: keys[0], port_id: 'primary' },
   )
-  for (const key of keys)
+  for (const key of [source, ...keys])
     e.update(key, { kv_rating: 13.8, amp_rating: 1200, derating_multiplier: 0.99 })
   e.select(keys)
   e.setViewport({ x: innerWidth / 2, y: innerHeight / 2 - 120, zoom: 0.85 })

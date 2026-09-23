@@ -17,6 +17,7 @@ import {
   Plus,
   Redo2,
   RotateCw,
+  Search,
   Settings2,
   Trash2,
   Undo2,
@@ -33,6 +34,9 @@ import type { ProjectSession } from '../persistence/session'
 import { Inspector } from './Inspector'
 import { ArrangementControls } from './ArrangementControls'
 import { errorMessage } from '../core/schema'
+import { exportIssues, type ExportIssue } from '../core/exportChecks'
+import { EquipmentFinder } from './EquipmentFinder'
+import { ExportErrors } from './ExportErrors'
 
 export function downloadJson(text: string, name: string) {
   const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }))
@@ -89,7 +93,30 @@ export function Workspace({
     [error, setError] = useState(''),
     [settings, setSettings] = useState(false),
     [help, setHelp] = useState(false),
+    [finding, setFinding] = useState(false),
+    [issues, setIssues] = useState<ExportIssue[] | null>(null),
     [exporting, setExporting] = useState(false)
+  const openFind = () => {
+    setFinding(true)
+    host.current?.parentElement
+      ?.querySelector<HTMLInputElement>('.equipment-finder input')
+      ?.select()
+  }
+  useEffect(() => {
+    const find = (event: KeyboardEvent) => {
+      if (!(event.ctrlKey || event.metaKey) || event.key.toLowerCase() !== 'f') return
+      event.preventDefault()
+      event.stopPropagation()
+      if (settings || help || issues) return
+      setFinding(true)
+      host.current?.parentElement
+        ?.querySelector<HTMLInputElement>('.equipment-finder input')
+        ?.select()
+    }
+    // Export temporarily disables its button, which can leave focus on the page body.
+    window.addEventListener('keydown', find, true)
+    return () => window.removeEventListener('keydown', find, true)
+  }, [settings, help, issues])
   useEffect(() => {
     let active = true
     const surface = new CanvasRenderer(e, host.current!),
@@ -130,18 +157,31 @@ export function Workspace({
     const item = e.equipment.get(key)
     if (!item || !host.current) return
     e.inspector = key
+    e.failoverPick = null
+    e.setTool('select')
     e.select([key], false)
-    const v = e.viewport
-    e.setViewport(
-      {
-        ...v,
-        x: host.current.clientWidth / 2 - item.x * v.zoom,
-        y: host.current.clientHeight / 2 - item.y * v.zoom,
-      },
-      true,
-    )
+    // Measure after the inspector opens so the item is centered in the visible canvas.
+    requestAnimationFrame(() => {
+      if (!host.current || !e.equipment.has(key)) return
+      const v = e.viewport
+      e.setViewport(
+        {
+          ...v,
+          x: host.current.clientWidth / 2 - item.x * v.zoom,
+          y: host.current.clientHeight / 2 - item.y * v.zoom,
+        },
+        true,
+      )
+      controller.current?.focus()
+    })
   }
   async function exportFile() {
+    const problems = exportIssues({ equipment: [...e.equipment.values()], failovers: e.failovers })
+    if (problems.length) {
+      setFinding(false)
+      setIssues(problems)
+      return
+    }
     setExporting(true)
     try {
       downloadJson(await session.export(), e.header.model_name)
@@ -204,6 +244,9 @@ export function Workspace({
           <Action label="Keyboard shortcuts" onClick={() => setHelp(true)}>
             <CircleHelp size={17} />
           </Action>
+          <Action label="Find equipment · Ctrl/Cmd F" onClick={openFind}>
+            <Search size={17} />
+          </Action>
           <button className="button export-button" onClick={exportFile} disabled={exporting}>
             <Download size={15} />
             {exporting ? 'Preparing…' : 'Export JSON'}
@@ -213,6 +256,19 @@ export function Workspace({
       </header>
       <div className="editor-body">
         <main className="canvas-area">
+          {finding && (
+            <EquipmentFinder
+              equipment={e.equipment}
+              onChoose={(key) => {
+                setFinding(false)
+                focus(key)
+              }}
+              onClose={() => {
+                setFinding(false)
+                controller.current?.focus()
+              }}
+            />
+          )}
           <div
             ref={host}
             className="canvas-host"
@@ -295,34 +351,6 @@ export function Workspace({
               )}
             </div>
           )}
-          {e.failoverPick && (
-            <div className="failover-banner">
-              <span className="pick-indicator" />
-              <div>
-                <strong>
-                  {e.failoverPick.kind === 'triggers'
-                    ? 'Select failover triggers'
-                    : 'Choose a Failover Target'}
-                </strong>
-                <p>
-                  For {e.equipment.get(e.failoverPick.owner)?.id} · {e.failoverPick.keys.size}{' '}
-                  selected
-                </p>
-              </div>
-              <button
-                className="button"
-                onClick={() => {
-                  e.failoverPick = null
-                  e.notify()
-                }}
-              >
-                Cancel
-              </button>
-              <button className="button primary" onClick={act(() => e.applyFailoverPick())}>
-                Apply
-              </button>
-            </div>
-          )}
           <div className="bottom-tools">
             <div className="tool-cluster">
               <Action
@@ -383,7 +411,7 @@ export function Workspace({
               {e.tool === 'place'
                 ? `Click to place ${CATALOG[e.placement].name.toLowerCase()} · Shift to keep placing`
                 : e.failoverPick
-                  ? 'Click equipment or drag to select'
+                  ? 'Changes save immediately · Esc to stop selecting'
                   : selected
                     ? 'Double-click to edit · Alt-drag to duplicate'
                     : 'Drag to select · Space to pan · Ctrl + scroll to zoom'}
@@ -410,6 +438,7 @@ export function Workspace({
             editor={e}
             onFocus={focus}
             onClose={() => {
+              e.cancel()
               e.inspector = null
               e.selectedConnector = null
               e.notify()
@@ -439,6 +468,19 @@ export function Workspace({
           editor={e}
           onClose={() => {
             setSettings(false)
+            controller.current?.focus()
+          }}
+        />
+      )}
+      {issues && (
+        <ExportErrors
+          issues={issues}
+          onChoose={(key) => {
+            setIssues(null)
+            focus(key)
+          }}
+          onClose={() => {
+            setIssues(null)
             controller.current?.focus()
           }}
         />
@@ -474,6 +516,7 @@ export function Workspace({
               ['Undo / redo', 'Ctrl/Cmd + Z / + Shift'],
               ['Select all', 'Ctrl/Cmd + A'],
               ['Fit to model', 'F'],
+              ['Find equipment by ID', 'Ctrl/Cmd + F'],
               ['Cancel', 'Escape'],
             ].map(([name, key]) => (
               <div className="shortcut-row" key={name}>

@@ -156,7 +156,8 @@ export class CanvasController {
     const hit = label ?? e.hitEquipment(p, 5 / e.viewport.zoom)
     if (e.failoverPick) {
       if (hit) e.pickFailover(hit)
-      else this.gesture = { kind: 'marquee', start: p, existing: new Set(e.failoverPick.keys) }
+      else if (e.failoverPick.kind === 'triggers')
+        this.gesture = { kind: 'marquee', start: p, existing: new Set(e.failoverPick.keys) }
       return
     }
     if (label) {
@@ -350,10 +351,8 @@ export class CanvasController {
       if (g?.kind === 'wire' && e.snap) e.connect(g.from, e.snap.to)
       if (g?.kind === 'marquee' && preview?.kind === 'marquee') {
         const keys = e.equipmentIndex.query(preview.bounds)
-        if (e.failoverPick) {
-          for (const key of keys) e.failoverPick.keys.add(key)
-          e.notify()
-        } else e.select([...g.existing, ...keys])
+        if (e.failoverPick) e.addFailoverTriggers(keys)
+        else e.select([...g.existing, ...keys])
       }
       if (g?.kind === 'bus' && preview?.kind === 'bus') e.resizeBus(g.key, preview.equipment)
       if (g?.kind === 'bend' && preview?.kind === 'bend') e.setBends(g.id, preview.bends)
@@ -478,7 +477,7 @@ export class CanvasController {
         void this.paste()
       } else if (!mod && key === 'v') e.setTool('select')
       else if (!mod && key === 'h') e.setTool('hand')
-      else if (key === 'f') this.fit()
+      else if (!mod && key === 'f') this.fit()
       else if (key === '+' || key === '=') this.zoom(1.2)
       else if (key === '-') this.zoom(1 / 1.2)
       else handled = false

@@ -1,5 +1,9 @@
 import { GraphicsPath, type Graphics } from 'pixi.js'
-import { DIAGRAM_STROKE_WIDTH, equipmentSymbolFill, equipmentSymbolPath } from '../core/symbols'
+import {
+  equipmentSymbolFill,
+  equipmentSymbolPath,
+  equipmentSymbolStrokeWidth,
+} from '../core/symbols'
 import type { EquipmentType } from '../core/types'
 
 const paths = new Map<EquipmentType, GraphicsPath>()
@@ -21,7 +25,7 @@ export function drawEquipmentSymbol(
     }
     graphics.path(path)
   }
-  graphics.stroke({ width: DIAGRAM_STROKE_WIDTH, color, cap: 'butt', join: 'round' })
+  graphics.stroke({ width: equipmentSymbolStrokeWidth(type), color, cap: 'butt', join: 'round' })
   const fill = equipmentSymbolFill(type)
   if (fill) {
     let path = fills.get(type)

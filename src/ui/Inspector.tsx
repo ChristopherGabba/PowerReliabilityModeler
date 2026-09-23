@@ -135,8 +135,11 @@ export function Inspector({
     failover = e.failovers.find((f) => f.equipment_key === item.key),
     connections = [...(e.adjacency.get(item.key) ?? [])].map((id) => e.connectors.get(id)!)
   const incomplete = failover && (!failover.parent_key || !failover.trigger_keys.length)
-  const setParent = (key: string | null) =>
+  const picking = e.failoverPick?.owner === item.key ? e.failoverPick.kind : null
+  const setParent = (key: string | null) => {
     e.setFailover(item.key, failover?.trigger_keys ?? [], key)
+    if (picking === 'parent') e.stopFailoverPick()
+  }
   const matches = search
     ? [...e.equipment.values()]
         .filter(
@@ -146,7 +149,15 @@ export function Inspector({
         .slice(0, 15)
     : []
   return (
-    <aside className="inspector">
+    <aside
+      className="inspector"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && picking) {
+          e.stopFailoverPick()
+          event.stopPropagation()
+        }
+      }}
+    >
       <div className="inspector-heading">
         <span className="eyebrow">EQUIPMENT PROPERTIES</span>
         <button className="icon-button" aria-label="Close inspector" onClick={onClose}>
@@ -215,13 +226,28 @@ export function Inspector({
         </div>
         <p className="muted">
           If any selected equipment fails, switch this item to its failover target. Triggers appear
-          orange when this item is selected.
+          orange and the target purple when this item is selected. If colors overlap, a purple
+          target marker identifies the target.
         </p>
-        <button className="button full" onClick={() => e.startFailoverPick(item.key, 'triggers')}>
+        <button
+          className={`button full ${picking === 'triggers' ? 'primary' : ''}`}
+          aria-pressed={picking === 'triggers'}
+          onClick={() =>
+            picking === 'triggers'
+              ? e.stopFailoverPick()
+              : e.startFailoverPick(item.key, 'triggers')
+          }
+        >
           <Crosshair size={15} />
-          Select failovers
+          {picking === 'triggers' ? 'Stop selecting triggers' : 'Select failover triggers'}
           {failover?.trigger_keys.length ? ` (${failover.trigger_keys.length})` : ''}
         </button>
+        {picking === 'triggers' && (
+          <p className="muted failover-pick-hint" role="status">
+            Click equipment or drag to select triggers. Changes save immediately. Press Esc to stop
+            selecting.
+          </p>
+        )}
         {!!failover?.trigger_keys.length && (
           <div className="trigger-list">
             {failover.trigger_keys.map((key) => (
@@ -264,15 +290,33 @@ export function Inspector({
               onChange={(ev) => setSearch(ev.target.value)}
             />
             <button
-              className="icon-button"
-              title="Pick Failover Target on canvas"
-              aria-label="Pick Failover Target on canvas"
-              onClick={() => e.startFailoverPick(item.key, 'parent')}
+              className={`icon-button ${picking === 'parent' ? 'active' : ''}`}
+              title={
+                picking === 'parent'
+                  ? 'Stop picking Failover Target'
+                  : 'Pick Failover Target on canvas'
+              }
+              aria-label={
+                picking === 'parent'
+                  ? 'Stop picking Failover Target'
+                  : 'Pick Failover Target on canvas'
+              }
+              aria-pressed={picking === 'parent'}
+              onClick={() =>
+                picking === 'parent'
+                  ? e.stopFailoverPick()
+                  : e.startFailoverPick(item.key, 'parent')
+              }
             >
               <Crosshair size={15} />
             </button>
           </div>
         </label>
+        {picking === 'parent' && (
+          <p className="muted failover-pick-hint" role="status">
+            Click a component to save it as the failover target. Press Esc to stop selecting.
+          </p>
+        )}
         {search && (
           <div className="search-results">
             {matches.map((other) => (
